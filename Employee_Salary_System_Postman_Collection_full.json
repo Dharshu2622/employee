@@ -1,0 +1,319 @@
+{
+  "info": {
+    "_postman_id": "employee-salary-system-2026-full",
+    "name": "Employee Salary Management System - Full Collection",
+    "description": "Comprehensive API collection for Employee Salary Management System (Auth, Users, Attendance, Leaves, Loans, Salary, Payslips). Includes automatic token scripts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "token", "value": "" },
+    { "key": "superiorToken", "value": "" },
+    { "key": "employeeId", "value": "" },
+    { "key": "salaryId", "value": "" },
+    { "key": "payslipId", "value": "" },
+    { "key": "leaveId", "value": "" },
+    { "key": "loanId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login (any role)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set(\"token\", jsonData.token);",
+                  "    console.log(\"Token updated automatically\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@company.com\",\n  \"password\": \"admin123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Login (Superior)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set(\"token\", jsonData.token);",
+                  "    console.log(\"Token updated automatically\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"superior@company.com\",\n  \"password\": \"superior123\"\n}" },
+            "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/auth/me", "host": ["{{baseUrl}}"], "path": ["api","auth","me"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Employees",
+      "item": [
+        {
+          "name": "Create Employee (Admin/Superior)",
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane@company.com\",\n  \"password\": \"jane123\",\n  \"department\": \"HR\",\n  \"position\": \"HR Manager\",\n  \"baseSalary\": 50000\n}" },
+            "url": { "raw": "{{baseUrl}}/api/admin/employees", "host": ["{{baseUrl}}"], "path": ["api","admin","employees"] }
+          }
+        },
+        {
+          "name": "Get All Employees (Admin/Superior)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.length > 0 && jsonData[0]._id) {",
+                  "    pm.collectionVariables.set(\"employeeId\", jsonData[0]._id);",
+                  "    console.log(\"Employee ID updated automatically from list\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/admin/employees", "host": ["{{baseUrl}}"], "path": ["api","admin","employees"] } }
+        },
+        {
+          "name": "Get Employee By ID",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/admin/employees/{{employeeId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","employees","{{employeeId}}"] } }
+        },
+        {
+          "name": "Update Employee (Admin/Superior)",
+          "request": { "method": "PUT", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"position\": \"Senior HR Manager\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/employees/{{employeeId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","employees","{{employeeId}}"] } }
+        },
+        {
+          "name": "Delete (Terminate) Employee (Admin/Superior)",
+          "request": { "method": "DELETE", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/admin/employees/{{employeeId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","employees","{{employeeId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Attendance",
+      "item": [
+        {
+          "name": "Mark Attendance (Superior)",
+          "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"employee\": \"{{employeeId}}\",\n  \"date\": \"2026-01-11\",\n  \"status\": \"present\",\n  \"checkInTime\": \"09:05\",\n  \"checkOutTime\": \"18:00\",\n  \"remarks\": \"On time\"\n}" }, "url": { "raw": "{{baseUrl}}/api/attendance", "host": ["{{baseUrl}}"], "path": ["api","attendance"] } }
+        },
+        {
+          "name": "Get All Attendance (Admin/Superior)",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/attendance/all", "host": ["{{baseUrl}}"], "path": ["api","attendance","all"] } }
+        },
+        {
+          "name": "Get Attendance By Employee",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/attendance/employee/{{employeeId}}", "host": ["{{baseUrl}}"], "path": ["api","attendance","employee","{{employeeId}}"] } }
+        },
+        {
+          "name": "Get Attendance By Month (Superior)",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/attendance/month?month=1&year=2026", "host": ["{{baseUrl}}"], "path": ["api","attendance","month"], "query": [ { "key": "month", "value": "1" }, { "key": "year", "value": "2026" } ] } }
+        }
+      ]
+    },
+    {
+      "name": "Leaves",
+      "item": [
+        {
+          "name": "Request Leave (Employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData._id) {",
+                  "    pm.collectionVariables.set(\"leaveId\", jsonData._id);",
+                  "    console.log(\"Leave ID updated automatically\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"employee\": \"{{employeeId}}\",\n  \"from\": \"2026-02-01\",\n  \"to\": \"2026-02-05\",\n  \"type\": \"paid\",\n  \"reason\": \"Vacation\"\n}" }, "url": { "raw": "{{baseUrl}}/api/leaves", "host": ["{{baseUrl}}"], "path": ["api","leaves"] } }
+        },
+        {
+          "name": "Get All Leaves (Admin/Superior)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.length > 0 && jsonData[0]._id) {",
+                  "    pm.collectionVariables.set(\"leaveId\", jsonData[0]._id);",
+                  "    console.log(\"Leave ID updated automatically from list\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/leaves/all", "host": ["{{baseUrl}}"], "path": ["api","leaves","all"] } }
+        },
+        {
+          "name": "Approve Leave (Superior)",
+          "request": { "method": "PATCH", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/leaves/{{leaveId}}/approve", "host": ["{{baseUrl}}"], "path": ["api","leaves","{{leaveId}}","approve"] } }
+        },
+        {
+          "name": "Reject Leave (Superior)",
+          "request": { "method": "PATCH", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/leaves/{{leaveId}}/reject", "host": ["{{baseUrl}}"], "path": ["api","leaves","{{leaveId}}","reject"] } }
+        }
+      ]
+    },
+    {
+      "name": "Loans",
+      "item": [
+        {
+          "name": "Request Loan (Employee)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData._id) {",
+                  "    pm.collectionVariables.set(\"loanId\", jsonData._id);",
+                  "    console.log(\"Loan ID updated automatically\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"employee\": \"{{employeeId}}\",\n  \"amount\": 20000,\n  \"durationMonths\": 12,\n  \"reason\": \"Medical\"\n}" }, "url": { "raw": "{{baseUrl}}/api/loans", "host": ["{{baseUrl}}"], "path": ["api","loans"] } }
+        },
+        {
+          "name": "Get All Loans (Admin/Superior)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.length > 0 && jsonData[0]._id) {",
+                  "    pm.collectionVariables.set(\"loanId\", jsonData[0]._id);",
+                  "    console.log(\"Loan ID updated automatically from list\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/loans/all", "host": ["{{baseUrl}}"], "path": ["api","loans","all"] } }
+        },
+        {
+          "name": "Approve Loan (Superior)",
+          "request": { "method": "PATCH", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/loans/{{loanId}}/approve", "host": ["{{baseUrl}}"], "path": ["api","loans","{{loanId}}","approve"] } }
+        },
+        {
+          "name": "Reject Loan (Superior)",
+          "request": { "method": "PATCH", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/loans/{{loanId}}/reject", "host": ["{{baseUrl}}"], "path": ["api","loans","{{loanId}}","reject"] } }
+        }
+      ]
+    },
+    {
+      "name": "Salary",
+      "item": [
+        {
+          "name": "Set Salary Structure (Admin/Superior)",
+          "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"baseSalary\": 50000,\n  \"allowances\": { \"hra\": 5000 },\n  \"deductions\": { \"pf\": 6000 }\n}" }, "url": { "raw": "{{baseUrl}}/api/salary/structure", "host": ["{{baseUrl}}"], "path": ["api","salary","structure"] } }
+        },
+        {
+          "name": "Generate Salary (Superior)",
+          "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"month\": \"2026-01\"\n}" }, "url": { "raw": "{{baseUrl}}/api/salary/generate", "host": ["{{baseUrl}}"], "path": ["api","salary","generate"] } }
+        },
+        {
+          "name": "Get All Salaries (Admin/Superior)",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/salary/all", "host": ["{{baseUrl}}"], "path": ["api","salary","all"] } }
+        },
+        {
+          "name": "Get Salary History By Employee",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/salary/history/{{employeeId}}", "host": ["{{baseUrl}}"], "path": ["api","salary","history","{{employeeId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Payslips",
+      "item": [
+        {
+          "name": "Generate Payslip (Superior)",
+          "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ], "body": { "mode": "raw", "raw": "{\n  \"employeeId\": \"{{employeeId}}\",\n  \"month\": \"2026-01\"\n}" }, "url": { "raw": "{{baseUrl}}/api/payslips/generate", "host": ["{{baseUrl}}"], "path": ["api","payslips","generate"] } }
+        },
+        {
+          "name": "Get All Payslips (Admin/Superior)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.length > 0 && jsonData[0]._id) {",
+                  "    pm.collectionVariables.set(\"payslipId\", jsonData[0]._id);",
+                  "    console.log(\"Payslip ID updated automatically from list\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/payslips/all", "host": ["{{baseUrl}}"], "path": ["api","payslips","all"] } }
+        },
+        {
+          "name": "Download Payslip",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/payslips/{{payslipId}}/download", "host": ["{{baseUrl}}"], "path": ["api","payslips","{{payslipId}}","download"] } }
+        },
+        {
+          "name": "Send Payslip Email (Superior)",
+          "request": { "method": "POST", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/payslips/{{payslipId}}/send-email", "host": ["{{baseUrl}}"], "path": ["api","payslips","{{payslipId}}","send-email"] } }
+        },
+        {
+          "name": "Get Payslips By Employee",
+          "request": { "method": "GET", "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ], "url": { "raw": "{{baseUrl}}/api/payslips/employee/{{employeeId}}", "host": ["{{baseUrl}}"], "path": ["api","payslips","employee","{{employeeId}}"] } }
+        }
+      ]
+    }
+  ]
+}
