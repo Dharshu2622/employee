@@ -14,7 +14,8 @@ import {
   Button,
   Menu,
   MenuItem,
-  IconButton
+  IconButton,
+  Stack
 } from '@mui/material';
 import { PersonOutline, CalendarToday, CreditCard, ArticleOutlined, MoreVert, LogoutOutlined } from '@mui/icons-material';
 import api from '../api';
@@ -60,139 +61,123 @@ export default function EmployeeDashboard() {
     navigate('/login');
   };
 
-  const StatCard = ({ title, value, icon, onClick }) => (
-    <Card onClick={onClick} sx={{ 
-      borderRadius: '18px', 
-      cursor: onClick ? 'pointer' : 'default', 
-      background: 'linear-gradient(135deg, #667eea15 0%, #764ba210 100%)',
-      border: '2.5px solid #667eea',
-      transition: 'all 0.3s ease',
-      '&:hover': { 
-        boxShadow: onClick ? '0 16px 40px rgba(102, 126, 234, 0.3)' : '0 4px 12px rgba(0,0,0,0.1)',
-        transform: onClick ? 'translateY(-8px)' : 'none'
-      } 
+  const StatCard = ({ title, value, icon: Icon, onClick, color = '#1A365D' }) => (
+    <Paper onClick={onClick} sx={{
+      p: 2.5,
+      borderRadius: '8px',
+      border: '1px solid #E2E8F0',
+      boxShadow: 'none',
+      cursor: onClick ? 'pointer' : 'default',
+      transition: 'all 0.2s ease',
+      height: '110px',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      '&:hover': onClick ? { transform: 'translateY(-2px)', borderColor: color, bgcolor: `${color}05` } : {}
     }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box>
-            <Typography color="textSecondary" gutterBottom sx={{ fontWeight: '600', fontSize: '0.95rem' }}>{title}</Typography>
-            <Typography variant="h5" sx={{ fontWeight: '800', color: '#667eea', fontSize: '1.8rem' }}>{value}</Typography>
-          </Box>
-          <Box sx={{ fontSize: '45px' }}>{icon}</Box>
+      <Stack direction="row" spacing={2} alignItems="center">
+        <Box sx={{ p: 1, bgcolor: `${color}10`, borderRadius: '6px', display: 'flex' }}>
+          <Icon sx={{ color, fontSize: 24 }} />
         </Box>
-      </CardContent>
-    </Card>
+        <Box>
+          <Typography variant="caption" sx={{ color: '#718096', fontWeight: 700, textTransform: 'uppercase', display: 'block' }}>{title}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#1A202C' }}>{value}</Typography>
+        </Box>
+      </Stack>
+    </Paper>
   );
 
   return (
-    <Box sx={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 50%, #e0c3fc 100%)', minHeight: '100vh' }}>
-      <AppBar position="sticky" sx={{ 
-        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-        boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
-      }}>
-        <Toolbar>
-          <PersonOutline sx={{ mr: 2, fontSize: 32 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: '800', fontSize: '1.4rem' }}>👤 Employee Dashboard</Typography>
-          <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ '&:hover': { background: 'rgba(255,255,255,0.2)' } }}>
-            <MoreVert />
-          </IconButton>
-          <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
-            <MenuItem onClick={handleLogout} sx={{ color: 'error.main', fontWeight: '600' }}>
-              <LogoutOutlined sx={{ mr: 1 }} /> Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ bgcolor: '#F7FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* HEADER SECTION */}
+      <Box sx={{ p: 2, bgcolor: 'white', borderBottom: '1px solid #E2E8F0', minHeight: '64px' }}>
+        <Container maxWidth="xl">
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Box sx={{ p: 0.75, bgcolor: '#1A202C', borderRadius: '6px' }}>
+                <PersonOutline sx={{ color: 'white', fontSize: 20 }} />
+              </Box>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#1A202C', lineHeight: 1.2 }}>Employee Portal</Typography>
+                <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>Welcome back, manage your payroll and requests.</Typography>
+              </Box>
+            </Stack>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ border: '1px solid #E2E8F0', borderRadius: '8px' }}>
+                <MoreVert sx={{ fontSize: 20 }} />
+              </IconButton>
+              <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)} PaperProps={{ sx: { borderRadius: '8px', mt: 1, boxShadow: '0 4px 6px rgba(0,0,0,0.05)' } }}>
+                <MenuItem onClick={handleLogout} sx={{ color: '#E53E3E', fontWeight: 700, fontSize: '0.85rem' }}>
+                  <LogoutOutlined sx={{ mr: 1, fontSize: 18 }} /> Logout
+                </MenuItem>
+              </Menu>
+            </Stack>
+          </Stack>
+        </Container>
+      </Box>
 
-      <Container maxWidth="lg" sx={{ py: 5 }}>
+      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 2, display: 'flex', flexDirection: 'column', gap: 2, overflow: 'hidden' }}>
         {user && (
-          <Paper sx={{ 
-            p: 3.5, 
-            mb: 4, 
-            borderRadius: '18px', 
-            background: 'linear-gradient(135deg, #667eea20 0%, #764ba215 100%)',
-            border: '2px solid #667eea',
-            boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)'
-          }}>
-            <Typography variant="h6" sx={{ fontWeight: '800', fontSize: '1.3rem' }}>Welcome, <strong sx={{ color: '#667eea' }}>{user.name}</strong>! 👋</Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ mt: 1, fontSize: '0.95rem' }}>✉️ {user.email} • 🏢 {user.department}</Typography>
+          <Paper sx={{ p: 2.5, borderRadius: '8px', border: '1px solid #E2E8F0', bgcolor: 'white', boxShadow: 'none' }}>
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>User: <span style={{ color: '#1A365D' }}>{user.name}</span></Typography>
+            <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>{user.email} • {user.department} Department</Typography>
           </Paper>
         )}
 
-        <Grid container spacing={3} sx={{ mb: 3 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard title="Attendance" value={`${attendance} days`} icon="📋" />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard title="Latest Salary" value={`₹${salary.toLocaleString()}`} icon="💰" />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard title="Approved Leaves" value={leaves} icon="📅" onClick={() => navigate('/employee/leaves')} />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard title="Active Loans" value={loans} icon="💳" onClick={() => navigate('/employee/loans')} />
-          </Grid>
-        </Grid>
+        <Box sx={{ flexGrow: 1, overflowY: 'auto', pr: 0.5, '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#E2E8F0', borderRadius: '10px' } }}>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard title="Active Days" value={attendance} icon={CalendarToday} color="#3182CE" />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard title="Latest Net" value={`₹${salary.toLocaleString()}`} icon={CreditCard} color="#48BB78" />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard title="Approved Leaves" value={leaves} icon={CalendarToday} color="#ED8936" onClick={() => navigate('/employee/leaves')} />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <StatCard title="Active Loans" value={loans} icon={CreditCard} color="#9F7AEA" onClick={() => navigate('/employee/loans')} />
+            </Grid>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ 
-              p: 3.5, 
-              borderRadius: '18px', 
-              cursor: 'pointer', 
-              background: 'linear-gradient(135deg, #667eea10 0%, #764ba210 100%)',
-              border: '2px solid #667eea30',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                boxShadow: '0 12px 32px rgba(102, 126, 234, 0.3)',
-                transform: 'translateY(-6px)',
-                border: '2px solid #667eea'
-              }, 
-              textAlign: 'center' 
-            }} onClick={() => navigate('/employee/leaves')}>
-              <CalendarToday sx={{ fontSize: 45, color: '#667eea', mb: 1.5 }} />
-              <Typography variant="body2" sx={{ fontWeight: '800', fontSize: '1rem', color: '#333' }}>📋 Request Leave</Typography>
-            </Paper>
+            {/* QUICK ACTIONS */}
+            <Grid item xs={12}>
+              <Typography variant="caption" sx={{ mb: 1, mt: 2, display: 'block', color: '#718096', fontWeight: 800 }}>QUICK ACTIONS</Typography>
+              <Grid container spacing={2}>
+                {[
+                  { label: 'Request Leave', icon: CalendarToday, path: '/employee/leaves', desc: 'Manage your leave applications.', color: '#3182CE' },
+                  { label: 'Apply for Loan', icon: CreditCard, path: '/employee/loans', desc: 'Submit and track loan requests.', color: '#2F855A' },
+                  { label: 'My Payslips', icon: ArticleOutlined, path: '/employee/payslips', desc: 'Securely view and download payslips.', color: '#718096' }
+                ].map((action, i) => (
+                  <Grid item xs={12} sm={4} key={i}>
+                    <Button
+                      fullWidth
+                      onClick={() => navigate(action.path)}
+                      sx={{
+                        p: 2.5,
+                        justifyContent: 'flex-start',
+                        textAlign: 'left',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '8px',
+                        color: action.color,
+                        textTransform: 'none',
+                        bgcolor: 'white',
+                        '&:hover': { bgcolor: '#F8FAFC', borderColor: action.color }
+                      }}
+                    >
+                      <Box sx={{ p: 1, bgcolor: `${action.color}10`, borderRadius: '6px', mr: 2, display: 'flex' }}>
+                        <action.icon sx={{ color: action.color, fontSize: 20 }} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1A202C' }}>{action.label}</Typography>
+                        <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>{action.desc}</Typography>
+                      </Box>
+                    </Button>
+                  </Grid>
+                ))}
+              </Grid>
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ 
-              p: 3.5, 
-              borderRadius: '18px', 
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #22c55e10 0%, #16a34a10 100%)',
-              border: '2px solid #22c55e30',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                boxShadow: '0 12px 32px rgba(34, 197, 94, 0.3)',
-                transform: 'translateY(-6px)',
-                border: '2px solid #22c55e'
-              },
-              textAlign: 'center' 
-            }} onClick={() => navigate('/employee/loans')}>
-              <CreditCard sx={{ fontSize: 45, color: '#22c55e', mb: 1.5 }} />
-              <Typography variant="body2" sx={{ fontWeight: '800', fontSize: '1rem', color: '#333' }}>💳 Apply Loan</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ 
-              p: 3.5, 
-              borderRadius: '18px', 
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #f59e0b10 0%, #d97706 10 100%)',
-              border: '2px solid #f59e0b30',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                boxShadow: '0 12px 32px rgba(245, 158, 11, 0.3)',
-                transform: 'translateY(-6px)',
-                border: '2px solid #f59e0b'
-              },
-              textAlign: 'center' 
-            }} onClick={() => navigate('/employee/payslips')}>
-              <ArticleOutlined sx={{ fontSize: 45, color: '#f59e0b', mb: 1.5 }} />
-              <Typography variant="body2" sx={{ fontWeight: '800', fontSize: '1rem', color: '#333' }}>📄 View Payslips</Typography>
-            </Paper>
-          </Grid>
-        </Grid>
+        </Box>
       </Container>
     </Box>
   );

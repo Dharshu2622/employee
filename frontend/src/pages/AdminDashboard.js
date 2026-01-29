@@ -1,57 +1,82 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import {
   Box,
   Container,
-  AppBar,
-  Toolbar,
   Typography,
   Grid,
   Paper,
-  Card,
-  CardContent,
   IconButton,
-  Menu,
-  MenuItem,
-  CircularProgress
+  Avatar,
+  Stack,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  useTheme,
+  useMediaQuery,
+  CircularProgress,
+  Tooltip
 } from '@mui/material';
-import { Dashboard, People, AttachMoney, Assignment, MoreVert, ArrowBack, Logout } from '@mui/icons-material';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useDispatch } from 'react-redux';
+import {
+  SpaceDashboardOutlined,
+  PeopleOutlined,
+  MaleOutlined,
+  FemaleOutlined,
+  CheckCircleOutline,
+  HighlightOff,
+  EventAvailableOutlined,
+  HistoryOutlined,
+  MonetizationOnOutlined,
+  AssessmentOutlined,
+  WorkOutline,
+  SettingsOutlined,
+  AccountBalanceOutlined,
+  LogoutOutlined,
+  NotificationsNoneOutlined
+} from '@mui/icons-material';
 import api from '../api';
 import { logout } from '../redux/authSlice';
 
+const NAV_ITEMS = [
+  { label: 'Overview', icon: SpaceDashboardOutlined, path: '/admin/dashboard', category: 'MAIN' },
+  { label: 'Employees', icon: PeopleOutlined, path: '/admin/employees', category: 'MAIN' },
+  { label: 'Payroll', icon: MonetizationOnOutlined, path: '/admin/salary', category: 'MAIN' },
+  { label: 'Attendance', icon: AssessmentOutlined, path: '/admin/attendance', category: 'REPORTING' },
+  { label: 'Leaves & Requests', icon: WorkOutline, path: '/admin/requests', category: 'REPORTING' },
+  { label: 'Settings', icon: SettingsOutlined, path: '/admin/settings', category: 'SYSTEM' },
+];
+
 export default function AdminDashboard() {
-  const [employees, setEmployees] = useState(0);
-  const [totalSalary, setTotalSalary] = useState(0);
-  const [loans, setLoans] = useState(0);
-  const [leaves, setLeaves] = useState(0);
+  const [stats, setStats] = useState({
+    employees: { total: 0, male: 0, female: 0 },
+    attendance: { present: 0, absent: 0, leave: 0, halfDay: 0, official_leave: 0 },
+    requests: { leaves: 0, loans: 0 }
+  });
   const [loading, setLoading] = useState(true);
-  const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     fetchStats();
+    const pollInterval = setInterval(fetchStats, 15000);
+    return () => clearInterval(pollInterval);
   }, []);
 
   const fetchStats = async () => {
     try {
-      const [empRes, salRes, loanRes, leaveRes] = await Promise.all([
-        api.get('/admin/employees').catch(() => ({ data: [] })),
-        api.get('/salary/all').catch(() => ({ data: [] })),
-        api.get('/loans/all').catch(() => ({ data: [] })),
-        api.get('/leaves/all').catch(() => ({ data: [] }))
-      ]);
-
-      setEmployees(empRes.data.length);
-      const total = (salRes.data || []).reduce((sum, s) => sum + (s.net || 0), 0);
-      setTotalSalary(total);
-      setLoans((loanRes.data || []).length);
-      setLeaves((leaveRes.data || []).filter(l => l.status === 'pending').length);
+      const res = await api.get('/dashboard/stats');
+      if (res.data) {
+        setStats(res.data);
+      }
       setLoading(false);
     } catch (err) {
-      console.error('Error fetching stats:', err);
+      console.error('Core sync failure:', err);
       setLoading(false);
     }
   };
@@ -61,198 +86,194 @@ export default function AdminDashboard() {
     navigate('/login');
   };
 
-  const StatCard = ({ title, value, icon, color }) => (
-    <Card sx={{ 
-      background: `linear-gradient(135deg, ${color}20 0%, ${color}10 100%)`, 
-      borderRadius: '18px', 
-      border: `2.5px solid ${color}`,
-      position: 'relative',
-      overflow: 'hidden',
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        transform: 'translateY(-8px)',
-        boxShadow: `0 16px 40px ${color}40`,
-        border: `2.5px solid ${color}`
-      },
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: `linear-gradient(135deg, ${color}05 0%, transparent 100%)`,
-        pointerEvents: 'none'
-      }
+  const Sidebar = () => (
+    <Box sx={{
+      width: 260,
+      flexShrink: 0,
+      height: '100vh',
+      position: 'fixed',
+      left: 0,
+      top: 0,
+      bgcolor: 'white',
+      borderRight: '1px solid #E2E8F0',
+      display: 'flex',
+      flexDirection: 'column',
+      zIndex: 1200
     }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-          <Box>
-            <Typography color="textSecondary" gutterBottom sx={{ fontSize: '0.95rem', fontWeight: '600', color: '#666' }}>{title}</Typography>
-            <Typography variant="h5" sx={{ fontWeight: '800', color, fontSize: '2rem' }}>{value}</Typography>
+      <Box sx={{ p: 4, pb: 6 }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box sx={{
+            width: 40, height: 40,
+            bgcolor: theme.palette.primary.main,
+            borderRadius: '10px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
+          }}>
+            <AccountBalanceOutlined sx={{ color: 'white', fontSize: 24 }} />
           </Box>
-          <Box sx={{ fontSize: '50px', opacity: 0.8 }}>{icon}</Box>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px' }}>
+            SalaryPro
+          </Typography>
+        </Stack>
+      </Box>
+
+      <Box sx={{ flexGrow: 1, px: 2, overflowY: 'auto' }}>
+        {['MAIN', 'REPORTING', 'SYSTEM'].map((cat) => (
+          <Box key={cat} sx={{ mb: 4 }}>
+            <Typography variant="caption" sx={{ px: 2, mb: 1.5, display: 'block', color: '#94A3B8', fontWeight: 700, letterSpacing: '1px' }}>
+              {cat}
+            </Typography>
+            <List disablePadding>
+              {NAV_ITEMS.filter(item => item.category === cat).map((item) => {
+                const active = location.pathname === item.path;
+                return (
+                  <ListItem key={item.label} disablePadding sx={{ mb: 0.5 }}>
+                    <ListItemButton
+                      onClick={() => navigate(item.path)}
+                      sx={{
+                        borderRadius: '10px', py: 1.25, px: 2,
+                        bgcolor: active ? 'rgba(59, 130, 246, 0.04)' : 'transparent',
+                        color: active ? theme.palette.primary.main : '#64748B',
+                        '&:hover': { bgcolor: 'rgba(59, 130, 246, 0.04)', color: theme.palette.primary.main }
+                      }}
+                    >
+                      <ListItemIcon sx={{ color: 'inherit', minWidth: 36 }}>
+                        <item.icon sx={{ fontSize: 20 }} />
+                      </ListItemIcon>
+                      <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: active ? 700 : 500, fontSize: '0.875rem' }} />
+                      {active && <Box sx={{ width: 4, height: 18, bgcolor: theme.palette.primary.main, borderRadius: 2, ml: 'auto' }} />}
+                    </ListItemButton>
+                  </ListItem>
+                );
+              })}
+            </List>
+          </Box>
+        ))}
+      </Box>
+
+      <Box sx={{ p: 2, mt: 'auto', borderTop: '1px solid #F1F5F9' }}>
+        <Box sx={{ p: 2, borderRadius: '12px', bgcolor: '#F8FAFC', border: '1px solid #F1F5F9' }}>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <Avatar sx={{ bgcolor: theme.palette.primary.main, width: 36, height: 36, fontSize: '0.875rem', fontWeight: 700 }}>AD</Avatar>
+            <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#0F172A', noWrap: true }}>Admin Portal</Typography>
+              <Typography variant="caption" sx={{ color: '#94A3B8', display: 'block' }}>System Administrator</Typography>
+            </Box>
+            <IconButton size="small" onClick={handleLogout} sx={{ color: '#EF4444' }}>
+              <LogoutOutlined sx={{ fontSize: 18 }} />
+            </IconButton>
+          </Stack>
         </Box>
-      </CardContent>
-    </Card>
+      </Box>
+    </Box>
+  );
+
+  const SummaryCard = ({ title, count, icon: Icon, color, bgColor }) => (
+    <Paper sx={{
+      p: 3,
+      height: '100%',
+      borderRadius: '16px',
+      bgcolor: 'white',
+      border: '1px solid #E2E8F0',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      textAlign: 'center',
+      transition: 'all 0.3s ease',
+      '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 12px 24px -10px rgba(0,0,0,0.1)' }
+    }}>
+      <Box sx={{
+        p: 2,
+        borderRadius: '50%',
+        bgcolor: bgColor,
+        color: color,
+        mb: 2,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Icon sx={{ fontSize: 32 }} />
+      </Box>
+      <Typography variant="h3" sx={{ fontWeight: 800, color: '#0F172A', mb: 1 }}>{count}</Typography>
+      <Typography variant="body1" sx={{ color: '#64748B', fontWeight: 600 }}>{title}</Typography>
+    </Paper>
   );
 
   if (loading) {
-    return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></Box>;
+    return (
+      <Box sx={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', bgcolor: '#F8FAFC' }}>
+        <CircularProgress size={40} thickness={4} sx={{ color: theme.palette.primary.main }} />
+      </Box>
+    );
   }
 
   return (
-    <Box sx={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 50%, #e0c3fc 100%)', minHeight: '100vh' }}>
-      <AppBar position="sticky" sx={{ 
-        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-        boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
-      }}>
-        <Toolbar>
-          <Dashboard sx={{ mr: 2, fontSize: 32, animation: 'pulse 2s infinite' }} />
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: '800', fontSize: '1.4rem' }}>📊 Admin Dashboard</Typography>
-          <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)} sx={{ '&:hover': { background: 'rgba(255,255,255,0.2)' } }}>
-            <MoreVert />
-          </IconButton>
-          <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
-            <MenuItem onClick={handleLogout} sx={{ color: 'error.main', fontWeight: '600' }}>
-              <Logout sx={{ mr: 1 }} /> Logout
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: '#F8FAFC' }}>
+      {!isMobile && <Sidebar />}
 
-      <Container maxWidth="lg" sx={{ py: 5 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard title="Total Employees" value={employees} icon="👥" color="#667eea" />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard title="Monthly Salary" value={`₹${totalSalary.toLocaleString()}`} icon="💰" color="#22c55e" />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard title="Pending Loans" value={loans} icon="💳" color="#f59e0b" />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard title="Pending Leaves" value={leaves} icon="📅" color="#ef4444" />
-          </Grid>
+      <Box sx={{ flexGrow: 1, ml: isMobile ? 0 : '260px', display: 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <Box sx={{
+          p: 3, px: 4,
+          bgcolor: 'white',
+          borderBottom: '1px solid #E2E8F0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          position: 'sticky',
+          top: 0,
+          zIndex: 1100
+        }}>
+          <Typography variant="h5" sx={{ fontWeight: 800, color: '#0F172A' }}>Dashboard Overview</Typography>
+        </Box>
 
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, borderRadius: '18px', background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.9) 100%)', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)', backdropFilter: 'blur(10px)' }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: '800', color: '#333' }}>📈 Salary Trend</Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={[{ month: 'Jan', salary: 50000 }, { month: 'Feb', salary: 52000 }, { month: 'Mar', salary: 51000 }]}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0ff" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                  <Line type="monotone" dataKey="salary" stroke="#667eea" strokeWidth={3} dot={{ fill: '#667eea', r: 6 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </Paper>
+        <Container maxWidth="xl" sx={{ py: 4, pb: 8 }}>
+
+          {/* Employee Summary Section */}
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: '#334155' }}>Employee Summary</Typography>
+          <Grid container spacing={3} sx={{ mb: 6 }}>
+            <Grid item xs={12} md={4}>
+              <SummaryCard title="Total Employees" count={stats.employees.total} icon={PeopleOutlined} color="#2563EB" bgColor="#EFF6FF" />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <SummaryCard title="Male Employees" count={stats.employees.male} icon={MaleOutlined} color="#0EA5E9" bgColor="#E0F2FE" />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <SummaryCard title="Female Employees" count={stats.employees.female} icon={FemaleOutlined} color="#EC4899" bgColor="#FCE7F3" />
+            </Grid>
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, borderRadius: '18px', background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.9) 100%)', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)', backdropFilter: 'blur(10px)' }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: '800', color: '#333' }}>📊 Attendance Stats</Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={[{ name: 'Present', value: 95 }, { name: 'Absent', value: 3 }, { name: 'Leave', value: 2 }]}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e0ff" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                  <Bar dataKey="value" fill="#667eea" radius={[10, 10, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </Paper>
+          {/* Attendance Summary Section */}
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: '#334155' }}>Today's Attendance Summary</Typography>
+          <Grid container spacing={3} sx={{ mb: 6 }}>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard title="Present" count={stats.attendance.present} icon={CheckCircleOutline} color="#16A34A" bgColor="#DCFCE7" />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard title="Absent" count={stats.attendance.absent} icon={HighlightOff} color="#DC2626" bgColor="#FEE2E2" />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard title="Half Day" count={stats.attendance.halfDay} icon={HistoryOutlined} color="#F59E0B" bgColor="#FEF3C7" />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard title="Official Leave" count={stats.attendance.official_leave || stats.attendance.leave} icon={EventAvailableOutlined} color="#6366F1" bgColor="#E0E7FF" />
+            </Grid>
           </Grid>
 
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ 
-              p: 3, 
-              borderRadius: '18px', 
-              cursor: 'pointer', 
-              background: 'linear-gradient(135deg, #667eea10 0%, #764ba210 100%)',
-              border: '2px solid #667eea30',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                boxShadow: '0 12px 32px rgba(102, 126, 234, 0.3)',
-                transform: 'translateY(-6px)',
-                border: '2px solid #667eea'
-              } 
-            }} onClick={() => navigate('/admin/employees')}>
-              <Typography variant="body2" sx={{ color: '#667eea', fontWeight: '800', fontSize: '1rem' }}>👨‍💼 Manage Employees</Typography>
-            </Paper>
+          {/* Requests Summary Section */}
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: '#334155' }}>Requests Summary</Typography>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <SummaryCard title="Total Leave Requests" count={stats.requests.leaves} icon={WorkOutline} color="#8B5CF6" bgColor="#F3E8FF" />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <SummaryCard title="Total Loan Requests" count={stats.requests.loans} icon={MonetizationOnOutlined} color="#F97316" bgColor="#FFEDD5" />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ 
-              p: 3, 
-              borderRadius: '18px', 
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #8b5cf610 0%, #7c3aed10 100%)',
-              border: '2px solid #8b5cf630',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                boxShadow: '0 12px 32px rgba(139, 92, 246, 0.3)',
-                transform: 'translateY(-6px)',
-                border: '2px solid #8b5cf6'
-              }
-            }} onClick={() => navigate('/admin/requests')}>
-              <Typography variant="body2" sx={{ color: '#8b5cf6', fontWeight: '800', fontSize: '1rem' }}>📋 Manage Requests</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ 
-              p: 3, 
-              borderRadius: '18px', 
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #22c55e10 0%, #16a34a10 100%)',
-              border: '2px solid #22c55e30',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                boxShadow: '0 12px 32px rgba(34, 197, 94, 0.3)',
-                transform: 'translateY(-6px)',
-                border: '2px solid #22c55e'
-              }
-            }} onClick={() => navigate('/admin/attendance')}>
-              <Typography variant="body2" sx={{ color: '#22c55e', fontWeight: '800', fontSize: '1rem' }}>📋 Attendance</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ 
-              p: 3, 
-              borderRadius: '18px', 
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #f59e0b10 0%, #d97706 10 100%)',
-              border: '2px solid #f59e0b30',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                boxShadow: '0 12px 32px rgba(245, 158, 11, 0.3)',
-                transform: 'translateY(-6px)',
-                border: '2px solid #f59e0b'
-              }
-            }} onClick={() => navigate('/admin/salary')}>
-              <Typography variant="body2" sx={{ color: '#f59e0b', fontWeight: '800', fontSize: '1rem' }}>💸 Salary</Typography>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <Paper sx={{ 
-              p: 3, 
-              borderRadius: '18px', 
-              cursor: 'pointer',
-              background: 'linear-gradient(135deg, #ef444410 0%, #dc262610 100%)',
-              border: '2px solid #ef444430',
-              transition: 'all 0.3s ease',
-              '&:hover': { 
-                boxShadow: '0 12px 32px rgba(239, 68, 68, 0.3)',
-                transform: 'translateY(-6px)',
-                border: '2px solid #ef4444'
-              }
-            }} onClick={() => navigate('/admin/payslips')}>
-              <Typography variant="body2" sx={{ color: '#ef4444', fontWeight: '800', fontSize: '1rem' }}>📄 Payslips</Typography>
-            </Paper>
-          </Grid>
-        </Grid>
-      </Container>
+
+        </Container>
+      </Box>
     </Box>
   );
 }

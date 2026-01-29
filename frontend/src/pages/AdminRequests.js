@@ -3,9 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
-  AppBar,
-  Toolbar,
-  IconButton,
   Paper,
   Typography,
   Grid,
@@ -25,16 +22,34 @@ import {
   Alert as MuiAlert,
   Tabs,
   Tab,
-  Chip
+  Chip,
+  IconButton,
+  Stack,
+  CircularProgress,
+  Avatar,
+  Divider,
+  Tooltip
 } from '@mui/material';
-import { ArrowBack, CheckCircle, Cancel } from '@mui/icons-material';
+import {
+  ArrowBack,
+  CheckCircle,
+  Cancel,
+  HistoryEdu,
+  Verified,
+  AdminPanelSettings,
+  Person,
+  Payments,
+  CalendarMonth,
+  InfoOutlined,
+  Rule
+} from '@mui/icons-material';
 import api from '../api';
 
 function TabPanel(props) {
   const { children, value, index, ...other } = props;
   return (
     <div role="tabpanel" hidden={value !== index} {...other}>
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ pt: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>{children}</Box>}
     </div>
   );
 }
@@ -44,6 +59,7 @@ export default function AdminRequests() {
   const [leaves, setLeaves] = useState([]);
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [openRejectDialog, setOpenRejectDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -57,19 +73,18 @@ export default function AdminRequests() {
   }, []);
 
   const fetchRequests = async () => {
-    setLoading(true);
     try {
+      setFetchLoading(true);
       const [leaveRes, loanRes] = await Promise.all([
         api.get('/leaves/all').catch(() => ({ data: [] })),
         api.get('/loans/all').catch(() => ({ data: [] }))
       ]);
-      
-      setLeaves(leaveRes.data || []);
-      setLoans(loanRes.data || []);
+      setLeaves((leaveRes.data || []).filter(item => item.status === 'pending' && item.employee));
+      setLoans((loanRes.data || []).filter(item => item.status === 'pending' && item.employee));
+      setFetchLoading(false);
     } catch (err) {
-      console.error('Error fetching requests:', err);
-    } finally {
-      setLoading(false);
+      console.error('Governance fetch error:', err);
+      setFetchLoading(false);
     }
   };
 
@@ -77,11 +92,11 @@ export default function AdminRequests() {
     try {
       const endpoint = type === 'leave' ? `/leaves/${id}/approve` : `/loans/${id}/approve`;
       await api.patch(endpoint, {});
-      setMessage(`✓ ${type === 'leave' ? 'Leave' : 'Loan'} approved successfully`);
+      setMessage(`✓ Authority confirmation successful`);
       fetchRequests();
       setShowSnack(true);
     } catch (err) {
-      setMessage('Error approving request');
+      setMessage('Administrative approval error');
       setShowSnack(true);
     }
   };
@@ -95,164 +110,190 @@ export default function AdminRequests() {
 
   const handleRejectSubmit = async () => {
     if (!rejectionReason.trim()) {
-      setMessage('⚠️ Rejection reason is required');
+      setMessage('Audit explanation required for rejection');
       setShowSnack(true);
       return;
     }
 
     try {
-      const endpoint = requestType === 'leave' 
-        ? `/leaves/${selectedRequest._id}/reject` 
+      const endpoint = requestType === 'leave'
+        ? `/leaves/${selectedRequest._id}/reject`
         : `/loans/${selectedRequest._id}/reject`;
-      
+
       await api.patch(endpoint, { rejectionReason: rejectionReason.trim() });
-      
-      setMessage(`✓ ${requestType === 'leave' ? 'Leave' : 'Loan'} rejected successfully`);
+
+      setMessage(`✗ Request formally declined`);
       setOpenRejectDialog(false);
       setRejectionReason('');
       setSelectedRequest(null);
       fetchRequests();
       setShowSnack(true);
     } catch (err) {
-      setMessage('Error rejecting request');
+      setMessage('Administrative rejection error');
       setShowSnack(true);
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = { pending: '#eab308', approved: '#22c55e', rejected: '#ef4444' };
-    return colors[status] || '#999';
+  const getStatusChip = (status) => {
+    const configs = {
+      pending: { label: 'Audit Pending', color: '#ED8936', bg: '#FFFAF0' },
+      approved: { label: 'Verified', color: '#48BB78', bg: '#F0FFF4' },
+      rejected: { label: 'Declined', color: '#E53E3E', bg: '#FFF5F5' }
+    };
+    const cur = configs[status] || configs.pending;
+    return <Chip label={cur.label} size="small" sx={{ borderRadius: '6px', fontWeight: 800, color: cur.color, bgcolor: cur.bg, border: `1px solid ${cur.color}30`, fontSize: '0.65rem', textTransform: 'uppercase' }} />;
   };
 
-  const pendingLeaves = leaves.filter(l => l.status === 'pending');
-  const pendingLoans = loans.filter(l => l.status === 'pending');
+  const RequestTable = ({ items, type }) => (
+    <TableContainer component={Paper} sx={{ boxShadow: 'none', border: '1px solid #E2E8F0', borderRadius: '12px', overflow: 'hidden' }}>
+      <Table stickyHeader>
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.75rem', textTransform: 'uppercase' }}>Personnel</TableCell>
+            <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.75rem', textTransform: 'uppercase' }}>Details</TableCell>
+            <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.75rem', textTransform: 'uppercase' }}>Reason / Audit</TableCell>
+            <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.75rem', textTransform: 'uppercase' }}>Status</TableCell>
+            <TableCell align="right" sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.75rem', textTransform: 'uppercase' }}>Governance</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {items.map((req) => {
+            const isSuperior = req.employee?.role === 'superior';
+            return (
+              <TableRow key={req._id} hover>
+                <TableCell>
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Avatar sx={{ bgcolor: isSuperior ? '#3182CE15' : '#71809615', color: isSuperior ? '#3182CE' : '#718096', width: 36, height: 36, fontSize: '0.8rem', fontWeight: 800 }}>
+                      {isSuperior ? 'SU' : 'EM'}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1A202C' }}>{req.employee?.name}</Typography>
+                      <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>{req.employee?.department}</Typography>
+                    </Box>
+                  </Stack>
+                </TableCell>
+                <TableCell>
+                  {type === 'leave' ? (
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#4A5568' }}>{req.type?.toUpperCase()}</Typography>
+                      <Typography variant="caption" sx={{ color: '#718096' }}>{new Date(req.fromDate).toLocaleDateString()} - {new Date(req.toDate).toLocaleDateString()}</Typography>
+                    </Box>
+                  ) : (
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#4A5568' }}>₹{req.amount?.toLocaleString()}</Typography>
+                      <Typography variant="caption" sx={{ color: '#718096' }}>EMI: ₹{req.monthlyEMI} | {req.termMonths} Months</Typography>
+                    </Box>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Typography variant="body2" sx={{ color: '#4A5568', maxWidth: '250px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {req.reason}
+                  </Typography>
+                  {req.rejectionReason && (
+                    <Typography variant="caption" sx={{ color: '#E53E3E', fontWeight: 600, display: 'block' }}>Audit: {req.rejectionReason}</Typography>
+                  )}
+                </TableCell>
+                <TableCell>{getStatusChip(req.status)}</TableCell>
+                <TableCell align="right">
+                  {isSuperior && req.status === 'pending' ? (
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button size="small" variant="contained" onClick={() => handleApprove(type, req._id)} sx={{ bgcolor: '#48BB78', fontWeight: 800, fontSize: '0.65rem', textTransform: 'none', minWidth: '80px', '&:hover': { bgcolor: '#38A169' } }}>Approve</Button>
+                      <Button size="small" variant="outlined" onClick={() => handleRejectClick(type, req)} sx={{ color: '#E53E3E', borderColor: '#FED7D7', fontWeight: 800, fontSize: '0.65rem', textTransform: 'none', minWidth: '80px', '&:hover': { borderColor: '#E53E3E' } }}>Decline</Button>
+                    </Stack>
+                  ) : (
+                    <Tooltip title={isSuperior ? "Actioned by Global Admin" : "Governed by Departmental Superior"}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1, color: '#A0AEC0' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700 }}>Oversight Pattern</Typography>
+                        <InfoOutlined sx={{ fontSize: 16 }} />
+                      </Box>
+                    </Tooltip>
+                  )}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 
   return (
-    <Box sx={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 50%, #e0c3fc 100%)', minHeight: '100vh' }}>
-      <AppBar position="sticky" sx={{ 
-        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-        boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
-      }}>
-        <Toolbar>
-          <IconButton color="inherit" onClick={() => navigate(-1)} sx={{ '&:hover': { background: 'rgba(255,255,255,0.2)' } }}>
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: '800', fontSize: '1.4rem' }}>📋 Manage Requests</Typography>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ bgcolor: '#F7FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* HEADER SECTION */}
+      <Box sx={{ p: 2, bgcolor: 'white', borderBottom: '1px solid #E2E8F0', minHeight: '64px' }}>
+        <Container maxWidth="xl">
+          <Stack direction="row" spacing={2} alignItems="center">
+            <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <ArrowBack sx={{ fontSize: 20, color: '#1A202C' }} />
+            </IconButton>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#1A202C', lineHeight: 1.2 }}>Oversight Registry</Typography>
+              <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>ADMINISTRATIVE GOVERNANCE | REQUEST BALANCING</Typography>
+            </Box>
+          </Stack>
+        </Container>
+      </Box>
 
-      <Container maxWidth="lg" sx={{ py: 5 }}>
-        <Paper sx={{ borderRadius: '18px', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)' }}>
-          <Tabs value={tabValue} onChange={(e, v) => setTabValue(v)} sx={{ borderBottom: '2px solid #e0e0ff' }}>
-            <Tab label={`📋 Leave Requests (${pendingLeaves.length})`} sx={{ fontWeight: '700' }} />
-            <Tab label={`💳 Loan Requests (${pendingLoans.length})`} sx={{ fontWeight: '700' }} />
+      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 2, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Paper sx={{ flexGrow: 1, borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <Tabs
+            value={tabValue}
+            onChange={(e, v) => setTabValue(v)}
+            sx={{
+              px: 3, pt: 0.5, minHeight: '40px',
+              '& .MuiTab-root': { fontWeight: 800, textTransform: 'none', fontSize: '0.85rem', color: '#718096', minHeight: '40px' },
+              '& .Mui-selected': { color: '#1A202C' },
+              '& .MuiTabs-indicator': { bgcolor: '#1A202C', height: 2, borderRadius: '2px 2px 0 0' }
+            }}
+          >
+            <Tab label="Leave Allocations" icon={<CalendarMonth sx={{ fontSize: 16 }} />} iconPosition="start" />
+            <Tab label="Financial Assistance" icon={<Payments sx={{ fontSize: 16 }} />} iconPosition="start" />
           </Tabs>
 
-          <Box sx={{ p: 3 }}>
-            <TabPanel value={tabValue} index={0}>
-              <TableContainer sx={{ borderRadius: '12px' }}>
-                <Table>
-                  <TableHead sx={{ background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)' }}>
-                    <TableRow>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Employee</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Type</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Dates</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Reason</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Status</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {pendingLeaves.length > 0 ? (
-                      pendingLeaves.map((leave) => (
-                        <TableRow key={leave._id} sx={{ '&:hover': { background: 'rgba(102, 126, 234, 0.05)' } }}>
-                          <TableCell sx={{ fontWeight: '600' }}>{leave.employee?.name}</TableCell>
-                          <TableCell sx={{ textTransform: 'capitalize', fontWeight: '500' }}>{leave.type}</TableCell>
-                          <TableCell sx={{ fontSize: '0.9rem' }}>
-                            {new Date(leave.fromDate).toLocaleDateString()} - {new Date(leave.toDate).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell sx={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{leave.reason}</TableCell>
-                          <TableCell><Chip label={leave.status} sx={{ background: getStatusColor(leave.status), color: 'white', fontWeight: '700' }} /></TableCell>
-                          <TableCell>
-                            <Button size="small" startIcon={<CheckCircle />} onClick={() => handleApprove('leave', leave._id)} sx={{ color: '#22c55e', fontWeight: '600', mr: 1 }}>Approve</Button>
-                            <Button size="small" startIcon={<Cancel />} onClick={() => handleRejectClick('leave', leave)} sx={{ color: '#ef4444', fontWeight: '600' }}>Reject</Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow><TableCell colSpan={6} sx={{ textAlign: 'center', py: 3, color: '#999', fontWeight: '500' }}>No pending leave requests</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </TabPanel>
+          <Divider />
 
-            <TabPanel value={tabValue} index={1}>
-              <TableContainer sx={{ borderRadius: '12px' }}>
-                <Table>
-                  <TableHead sx={{ background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)' }}>
-                    <TableRow>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Employee</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Amount</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Monthly EMI</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Term</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Status</TableCell>
-                      <TableCell sx={{ color: 'white', fontWeight: '800' }}>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {pendingLoans.length > 0 ? (
-                      pendingLoans.map((loan) => (
-                        <TableRow key={loan._id} sx={{ '&:hover': { background: 'rgba(102, 126, 234, 0.05)' } }}>
-                          <TableCell sx={{ fontWeight: '600' }}>{loan.employee?.name}</TableCell>
-                          <TableCell sx={{ color: '#667eea', fontWeight: '700' }}>₹{loan.amount.toLocaleString()}</TableCell>
-                          <TableCell sx={{ fontWeight: '600' }}>₹{loan.monthlyEMI.toLocaleString()}</TableCell>
-                          <TableCell sx={{ fontWeight: '500' }}>{loan.termMonths} months</TableCell>
-                          <TableCell><Chip label={loan.status} sx={{ background: getStatusColor(loan.status), color: 'white', fontWeight: '700' }} /></TableCell>
-                          <TableCell>
-                            <Button size="small" startIcon={<CheckCircle />} onClick={() => handleApprove('loan', loan._id)} sx={{ color: '#22c55e', fontWeight: '600', mr: 1 }}>Approve</Button>
-                            <Button size="small" startIcon={<Cancel />} onClick={() => handleRejectClick('loan', loan)} sx={{ color: '#ef4444', fontWeight: '600' }}>Reject</Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow><TableCell colSpan={6} sx={{ textAlign: 'center', py: 3, color: '#999', fontWeight: '500' }}>No pending loan requests</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </TabPanel>
+          <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2, '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#E2E8F0', borderRadius: '10px' } }}>
+            {fetchLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}><CircularProgress size={24} color="inherit" /></Box>
+            ) : (
+              <>
+                <TabPanel value={tabValue} index={0}>
+                  <RequestTable items={leaves} type="leave" />
+                </TabPanel>
+                <TabPanel value={tabValue} index={1}>
+                  <RequestTable items={loans} type="loan" />
+                </TabPanel>
+              </>
+            )}
           </Box>
         </Paper>
       </Container>
 
-      <Dialog open={openRejectDialog} onClose={() => setOpenRejectDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)', color: 'white', fontWeight: '800' }}>
-          ⚠️ Provide Rejection Reason
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <Typography variant="body2" sx={{ mb: 2, color: '#666', fontWeight: '500' }}>
-            📌 {requestType === 'leave' ? 'Leave' : 'Loan'} for: <strong>{selectedRequest?.employee?.name}</strong>
+      {/* REJECTION DIALOG */}
+      <Dialog open={openRejectDialog} onClose={() => setOpenRejectDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '12px' } }}>
+        <DialogTitle sx={{ fontWeight: 800, color: '#1A202C', pt: 3 }}>Declination Audit Prompt</DialogTitle>
+        <DialogContent sx={{ pb: 3 }}>
+          <Typography variant="body2" sx={{ mb: 3, color: '#718096' }}>
+            Provide a detailed administrative reason for declining the request from <strong>{selectedRequest?.employee?.name}</strong>.
           </Typography>
           <TextField
             fullWidth
-            label="Rejection Reason"
+            label="Internal Audit Remark"
             multiline
             rows={4}
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="Please explain why this request is being rejected..."
-            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
           />
         </DialogContent>
-        <DialogActions sx={{ p: 2, background: '#f5f5f5' }}>
-          <Button onClick={() => setOpenRejectDialog(false)} sx={{ fontWeight: '600' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleRejectSubmit} sx={{ background: '#ef4444', fontWeight: '700' }}>✗ Reject</Button>
+        <DialogActions sx={{ px: 3, pb: 4 }}>
+          <Button onClick={() => setOpenRejectDialog(false)} sx={{ color: '#718096', fontWeight: 700, textTransform: 'none' }}>Cancel Audit</Button>
+          <Button variant="contained" onClick={handleRejectSubmit} sx={{ bgcolor: '#E53E3E', px: 4, fontWeight: 700, textTransform: 'none', borderRadius: '8px', '&:hover': { bgcolor: '#C53030' } }}>Formalize Rejection</Button>
         </DialogActions>
       </Dialog>
 
       <Snackbar open={showSnack} autoHideDuration={4000} onClose={() => setShowSnack(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <MuiAlert severity={message.includes('✓') ? 'success' : 'error'} sx={{ borderRadius: '12px', fontWeight: '600' }}>{message}</MuiAlert>
+        <MuiAlert severity={message.includes('✓') ? 'success' : 'error'} variant="filled" sx={{ borderRadius: '4px' }}>{message}</MuiAlert>
       </Snackbar>
     </Box>
   );

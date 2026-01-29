@@ -44,6 +44,7 @@ exports.getAllLoans = async (req, res) => {
 exports.getLoansByEmployee = async (req, res) => {
   try {
     const loans = await Loan.find({ employee: req.params.employeeId })
+      .populate('employee', 'name email department')
       .populate('approvedBy', 'name email')
       .sort({ appliedOn: -1 });
     res.json(loans);
@@ -72,17 +73,13 @@ exports.rejectLoan = async (req, res) => {
   try {
     const { rejectionReason } = req.body;
 
-    if (!rejectionReason || rejectionReason.trim() === '') {
-      return res.status(400).json({ message: 'Rejection reason is required' });
-    }
-
     const loan = await Loan.findByIdAndUpdate(
       req.params.id,
-      { 
-        status: 'rejected', 
-        approvedBy: req.user.id, 
+      {
+        status: 'rejected',
+        approvedBy: req.user.id,
         approvedOn: new Date(),
-        rejectionReason: rejectionReason.trim()
+        rejectionReason: rejectionReason?.trim() || 'No reason provided'
       },
       { new: true }
     ).populate('employee');

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Box, Container, AppBar, Toolbar, IconButton, Paper, Typography, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Snackbar, Alert as MuiAlert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions
+  Box, Container, Paper, Typography, Grid, TextField, Button, FormControl, InputLabel, Select, MenuItem, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Snackbar, Alert as MuiAlert, CircularProgress, IconButton, Stack, Avatar
 } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowBack, CheckCircle, Cancel, HistoryToggleOff, EventNote } from '@mui/icons-material';
 import api from '../api';
 
 export default function AttendanceManagement() {
@@ -13,6 +13,7 @@ export default function AttendanceManagement() {
   const [status, setStatus] = useState('present');
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [showSnack, setShowSnack] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -21,6 +22,9 @@ export default function AttendanceManagement() {
   useEffect(() => {
     fetchEmployees();
     fetchAttendance();
+    // 30s polling for real-time accuracy
+    const poll = setInterval(fetchAttendance, 30000);
+    return () => clearInterval(poll);
   }, [selectedMonth]);
 
   const fetchEmployees = async () => {
@@ -39,117 +43,147 @@ export default function AttendanceManagement() {
       if (selectedMonth) {
         filtered = filtered.filter(a => a.date?.startsWith(selectedMonth));
       }
+      // Filter out records where employee is null (N/A)
+      filtered = filtered.filter(a => a.employee);
+
       setAttendance(filtered);
+      setFetchLoading(false);
     } catch (err) {
       console.error(err);
+      setFetchLoading(false);
     }
   };
 
   const markAttendance = async () => {
     if (!employeeId) {
-      setMessage('Please select an employee');
+      setMessage('Identification of personnel required');
       setShowSnack(true);
       return;
     }
     setLoading(true);
     try {
       await api.post('/attendance', { employee: employeeId, date, status });
-      setMessage('✓ Attendance marked successfully');
+      setMessage('✓ Operational status logged successfully');
       fetchAttendance();
       setEmployeeId('');
-      setDate(new Date().toISOString().split('T')[0]);
       setShowSnack(true);
     } catch (err) {
-      setMessage('Failed to mark attendance');
+      setMessage('Registry error during logging');
       setShowSnack(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (s) => {
-    const colors = { present: '#22c55e', absent: '#ef4444', leave: '#eab308', halfday: '#f97316' };
-    return colors[s] || '#999';
+  const getStatusChip = (s) => {
+    const configs = {
+      present: { label: 'Present', color: '#48BB78', bg: '#F0FFF4', icon: CheckCircle },
+      absent: { label: 'Absent', color: '#E53E3E', bg: '#FFF5F5', icon: Cancel },
+      leave: { label: 'Leave', color: '#ED8936', bg: '#FFFAF0', icon: EventNote },
+      halfday: { label: 'Half-Day', color: '#3182CE', bg: '#EBF8FF', icon: HistoryToggleOff }
+    };
+    const cur = configs[s] || configs.present;
+    return (
+      <Chip
+        icon={<cur.icon style={{ color: cur.color, fontSize: '1rem' }} />}
+        label={cur.label}
+        sx={{ bgcolor: cur.bg, color: cur.color, fontWeight: 800, borderRadius: '6px', border: `1px solid ${cur.color}30` }}
+      />
+    );
   };
 
   return (
-    <Box sx={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 50%, #e0c3fc 100%)', minHeight: '100vh' }}>
-      <AppBar position="sticky" sx={{ 
-        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-        boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
-      }}>
-        <Toolbar>
-          <IconButton color="inherit" onClick={() => navigate(-1)} sx={{ '&:hover': { background: 'rgba(255,255,255,0.2)' } }}><ArrowBack /></IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: '800', fontSize: '1.4rem' }}>📋 Attendance Management</Typography>
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ bgcolor: '#F7FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* HEADER SECTION */}
+      <Box sx={{ p: 2, bgcolor: 'white', borderBottom: '1px solid #E2E8F0', minHeight: '64px' }}>
+        <Container maxWidth="xl">
+          <Stack direction="row" spacing={2} alignItems="center">
+            <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+              <ArrowBack sx={{ fontSize: 20, color: '#1A202C' }} />
+            </IconButton>
+            <Box>
+              <Typography variant="h6" sx={{ fontWeight: 800, color: '#1A202C', lineHeight: 1.2 }}>Workforce Attendance</Typography>
+              <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>OPERATIONAL LOGGING | REAL-TIME SYNC</Typography>
+            </Box>
+          </Stack>
+        </Container>
+      </Box>
 
-      <Container maxWidth="lg" sx={{ py: 5 }}>
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3.5, borderRadius: '18px', background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.9) 100%)', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)' }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: '800', color: '#333', fontSize: '1.2rem' }}>✓ Mark Attendance</Typography>
-              <FormControl fullWidth sx={{ mb: 3 }}>
-                <InputLabel>👤 Select Employee</InputLabel>
-                <Select value={employeeId} label="👤 Select Employee" onChange={(e) => setEmployeeId(e.target.value)} sx={{ borderRadius: '12px' }}>
-                  <MenuItem value="">-- Select Employee --</MenuItem>
-                  {employees.map((e) => (<MenuItem key={e._id} value={e._id}>{e.name} — {e.email}</MenuItem>))}
-                </Select>
-              </FormControl>
-              <TextField fullWidth label="📅 Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
-              <FormControl fullWidth sx={{ mb: 3 }}>
-                <InputLabel>Status</InputLabel>
-                <Select value={status} label="Status" onChange={(e) => setStatus(e.target.value)} sx={{ borderRadius: '12px' }}>
-                  <MenuItem value="present">✓ Present</MenuItem>
-                  <MenuItem value="absent">✗ Absent</MenuItem>
-                  <MenuItem value="leave">📋 Leave</MenuItem>
-                  <MenuItem value="halfday">⏱️ Half Day</MenuItem>
-                </Select>
-              </FormControl>
-              <Button fullWidth variant="contained" onClick={markAttendance} disabled={loading} sx={{ background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)', py: 1.8, fontWeight: '800', borderRadius: '12px', fontSize: '1rem', textTransform: 'none' }}>
-                {loading ? '⏳ Marking...' : '✅ Mark Attendance'}
-              </Button>
+      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 2, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Grid container spacing={2} sx={{ flexGrow: 1, overflow: 'hidden' }}>
+          <Grid item xs={12} lg={4} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <Paper sx={{ p: 3, borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: 'none' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1A202C', mb: 2 }}>✓ Mark Personnel Status</Typography>
+              <Stack spacing={2}>
+                <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}>
+                  <InputLabel>Personnel Identifier</InputLabel>
+                  <Select value={employeeId} label="Personnel Identifier" onChange={(e) => setEmployeeId(e.target.value)}>
+                    <MenuItem value="">-- Select Personnel --</MenuItem>
+                    {employees.filter(e => e.role === 'superior').map((e) => (<MenuItem key={e._id} value={e._id}>{e.name} | {e.department}</MenuItem>))}
+                  </Select>
+                </FormControl>
+                <TextField fullWidth size="small" label="Audit Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }} />
+                <FormControl fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}>
+                  <InputLabel>Status Designation</InputLabel>
+                  <Select value={status} label="Status Designation" onChange={(e) => setStatus(e.target.value)}>
+                    <MenuItem value="present">Verification: Present</MenuItem>
+                    <MenuItem value="absent">Verification: Absent</MenuItem>
+                    <MenuItem value="leave">Designation: Leave</MenuItem>
+                    <MenuItem value="halfday">Designation: Half-Day</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button fullWidth variant="contained" onClick={markAttendance} disabled={loading} sx={{ bgcolor: '#1A202C', py: 1.5, fontWeight: 800, borderRadius: '8px', textTransform: 'none', '&:hover': { bgcolor: '#2D3748' } }}>
+                  {loading ? <CircularProgress size={20} color="inherit" /> : 'Log Status Record'}
+                </Button>
+              </Stack>
+            </Paper>
+
+            <Paper sx={{ p: 3, borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: 'none' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1A202C', mb: 2 }}>🔍 Temporal Filter</Typography>
+              <TextField fullWidth size="small" label="Audit Cycle (Month)" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }} />
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3.5, borderRadius: '18px', background: 'linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.9) 100%)', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)' }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: '800', color: '#333', fontSize: '1.2rem' }}>🔍 Filter Records</Typography>
-              <TextField fullWidth label="📅 Month" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }} />
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12}>
-            <TableContainer component={Paper} sx={{ borderRadius: '18px', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)' }}>
-              <Table>
-                <TableHead sx={{ background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)' }}>
-                  <TableRow>
-                    <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>📅 Date</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>👤 Employee</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>✉️ Email</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {attendance.length > 0 ? attendance.map((record, idx) => (
-                    <TableRow key={idx} sx={{ '&:hover': { background: 'rgba(102, 126, 234, 0.05)' }, transition: 'all 0.3s ease' }}>
-                      <TableCell sx={{ fontWeight: '600' }}>{new Date(record.date).toLocaleDateString()}</TableCell>
-                      <TableCell>{record.employee?.name || 'N/A'}</TableCell>
-                      <TableCell>{record.employee?.email || 'N/A'}</TableCell>
-                      <TableCell><Chip label={record.status} sx={{ background: getStatusColor(record.status), color: 'white', fontWeight: '700' }} /></TableCell>
+          <Grid item xs={12} lg={8} sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Paper sx={{ flexGrow: 1, borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: 'none', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <TableContainer sx={{ flexGrow: 1, maxHeight: 'calc(100vh - 120px)', '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#E2E8F0', borderRadius: '10px' } }}>
+                <Table stickyHeader size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Personnel</TableCell>
+                      <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Audit Date</TableCell>
+                      <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Contact Identifier</TableCell>
+                      <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Status Chip</TableCell>
                     </TableRow>
-                  )) : (
-                    <TableRow><TableCell colSpan={4} sx={{ textAlign: 'center', py: 4, color: '#999', fontWeight: '500' }}>No attendance records found</TableCell></TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  </TableHead>
+                  <TableBody>
+                    {fetchLoading ? (
+                      <TableRow><TableCell colSpan={4} sx={{ textAlign: 'center', py: 5 }}><CircularProgress size={24} sx={{ color: '#1A202C' }} /></TableCell></TableRow>
+                    ) : attendance.length > 0 ? attendance.map((record, idx) => (
+                      <TableRow key={idx} hover sx={{ '& .MuiTableCell-root': { py: 1.5 } }}>
+                        <TableCell>
+                          <Stack direction="row" spacing={1.5} alignItems="center">
+                            <Avatar sx={{ bgcolor: '#F1F5F9', color: '#1A202C', width: 28, height: 28, fontSize: '0.75rem', fontWeight: 800 }}>{record.employee?.name?.charAt(0)}</Avatar>
+                            <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.85rem' }}>{record.employee?.name || 'N/A'}</Typography>
+                          </Stack>
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: 700, color: '#4A5568', fontSize: '0.85rem' }}>{new Date(record.date).toLocaleDateString()}</TableCell>
+                        <TableCell sx={{ color: '#718096', fontSize: '0.75rem' }}>{record.employee?.email || 'N/A'}</TableCell>
+                        <TableCell>{getStatusChip(record.status)}</TableCell>
+                      </TableRow>
+                    )) : (
+                      <TableRow><TableCell colSpan={4} sx={{ textAlign: 'center', py: 5, color: '#94A3B8', fontWeight: 600 }}>Zero records found for current cycle.</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
           </Grid>
         </Grid>
       </Container>
 
       <Snackbar open={showSnack} autoHideDuration={4000} onClose={() => setShowSnack(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <MuiAlert severity={message.includes('✓') ? 'success' : 'error'} sx={{ borderRadius: '12px', fontWeight: '600' }}>{message}</MuiAlert>
+        <MuiAlert severity={message.includes('✓') ? 'success' : 'error'} variant="filled" sx={{ borderRadius: '4px' }}>{message}</MuiAlert>
       </Snackbar>
     </Box>
   );

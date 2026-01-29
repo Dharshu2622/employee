@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, AppBar, Toolbar, IconButton, Paper, Typography, Grid, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Snackbar, Alert as MuiAlert, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
+import { Box, Container, AppBar, Toolbar, IconButton, Paper, Typography, Grid, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Snackbar, Alert as MuiAlert, Select, MenuItem, FormControl, InputLabel, Stack } from '@mui/material';
 import { ArrowBack, Add } from '@mui/icons-material';
 import api from '../api';
 import { useSelector } from 'react-redux';
@@ -67,8 +67,15 @@ export default function LeaveManagement() {
   };
 
   const handleReject = async (id) => {
+    const reason = window.prompt('Please enter rejection reason:');
+    if (!reason || reason.trim() === '') {
+      setMessage('Rejection reason is required');
+      setShowSnack(true);
+      return;
+    }
+
     try {
-      await api.patch(`/leaves/${id}/reject`, {});
+      await api.patch(`/leaves/${id}/reject`, { rejectionReason: reason.trim() });
       setMessage('✓ Leave rejected');
       fetchLeaves();
       setShowSnack(true);
@@ -84,53 +91,97 @@ export default function LeaveManagement() {
   };
 
   return (
-    <Box sx={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 50%, #e0c3fc 100%)', minHeight: '100vh' }}>
-      <AppBar position="sticky" sx={{ 
-        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-        boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
-      }}>
-        <Toolbar>
-          <IconButton color="inherit" onClick={() => navigate(-1)} sx={{ '&:hover': { background: 'rgba(255,255,255,0.2)' } }}><ArrowBack /></IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: '800', fontSize: '1.4rem' }}>📋 Leave Management</Typography>
-          {!isAdmin && <Button color="inherit" startIcon={<Add />} onClick={() => setOpenDialog(true)} sx={{ fontWeight: '700', textTransform: 'none', fontSize: '1rem' }}>➕ Request Leave</Button>}
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ bgcolor: '#F7FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* HEADER SECTION */}
+      <Box sx={{ p: 2, bgcolor: 'white', borderBottom: '1px solid #E2E8F0', minHeight: '64px' }}>
+        <Container maxWidth="xl">
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack direction="row" spacing={2} alignItems="center">
+              <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <ArrowBack sx={{ fontSize: 20, color: '#1A202C' }} />
+              </IconButton>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#1A202C', lineHeight: 1.2 }}>Leave Management</Typography>
+                <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>Track and manage leave requests.</Typography>
+              </Box>
+            </Stack>
+            {!isAdmin && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<Add />}
+                onClick={() => setOpenDialog(true)}
+                sx={{ bgcolor: '#1A202C', fontWeight: 700, textTransform: 'none', px: 2, borderRadius: '8px', '&:hover': { bgcolor: '#2D3748' } }}
+              >
+                Request Leave
+              </Button>
+            )}
+          </Stack>
+        </Container>
+      </Box>
 
-      <Container maxWidth="lg" sx={{ py: 5 }}>
-        <TableContainer component={Paper} sx={{ borderRadius: '18px', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)' }}>
-          <Table>
-            <TableHead sx={{ background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)' }}>
-              <TableRow>
-                <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>👤 Employee</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>📅 Type</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>📆 From - To</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>Status</TableCell>
-                {isAdmin && <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>⚙️ Actions</TableCell>}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {leaves.map((leave) => (
-                <TableRow key={leave._id} sx={{ '&:hover': { background: 'rgba(102, 126, 234, 0.05)' }, transition: 'all 0.3s ease' }}>
-                  <TableCell sx={{ fontWeight: '600' }}>{leave.employee?.name || 'N/A'}</TableCell>
-                  <TableCell sx={{ fontWeight: '500', textTransform: 'capitalize' }}>{leave.type}</TableCell>
-                  <TableCell sx={{ fontSize: '0.95rem' }}>{new Date(leave.fromDate).toLocaleDateString()} - {new Date(leave.toDate).toLocaleDateString()}</TableCell>
-                  <TableCell><Chip label={leave.status} sx={{ background: getStatusColor(leave.status), color: 'white', fontWeight: '700' }} /></TableCell>
-                  {isAdmin && leave.status === 'pending' && (
-                    <TableCell>
-                      <Button size="small" color="success" onClick={() => handleApprove(leave._id)} sx={{ fontWeight: '600', '&:hover': { background: 'rgba(34, 197, 94, 0.1)' } }}>✓ Approve</Button>
-                      <Button size="small" color="error" onClick={() => handleReject(leave._id)} sx={{ fontWeight: '600', '&:hover': { background: 'rgba(239, 68, 68, 0.1)' } }}>✗ Reject</Button>
-                    </TableCell>
-                  )}
-                  {!isAdmin && leave.status === 'rejected' && leave.rejectionReason && (
-                    <TableCell>
-                      <Button size="small" onClick={() => { setSelectedLeave(leave); setShowDetailsDialog(true); }} sx={{ fontWeight: '600', color: '#ef4444', '&:hover': { background: 'rgba(239, 68, 68, 0.1)' } }}>👁️ View Reason</Button>
-                    </TableCell>
-                  )}
+      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 2, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Paper sx={{ flexGrow: 1, borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: 'none', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <TableContainer sx={{ flexGrow: 1, maxHeight: 'calc(100vh - 120px)', '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#E2E8F0', borderRadius: '10px' } }}>
+            <Table stickyHeader size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Employee</TableCell>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Leave Type</TableCell>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Period</TableCell>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Reason</TableCell>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Status</TableCell>
+                  {isAdmin && <TableCell align="right" sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Action</TableCell>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {leaves.length > 0 ? leaves.map((leave) => (
+                  <TableRow key={leave._id} hover sx={{ '& .MuiTableCell-root': { py: 1.5 } }}>
+                    <TableCell sx={{ fontWeight: 800, fontSize: '0.85rem' }}>{leave.employee?.name || 'N/A'}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: '0.75rem', color: '#718096' }}>{leave.type}</TableCell>
+                    <TableCell sx={{ fontSize: '0.85rem', color: '#4A5568' }}>{new Date(leave.fromDate).toLocaleDateString()} - {new Date(leave.toDate).toLocaleDateString()}</TableCell>
+                    <TableCell sx={{ fontSize: '0.8rem', color: '#64748B', maxWidth: '200px' }}>
+                      {leave.reason || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Chip
+                          label={leave.status}
+                          size="small"
+                          sx={{ bgcolor: getStatusColor(leave.status) + '15', color: getStatusColor(leave.status), fontWeight: 800, borderRadius: '4px', border: `1px solid ${getStatusColor(leave.status)}30`, fontSize: '0.65rem', textTransform: 'uppercase' }}
+                        />
+                        {leave.status === 'rejected' && leave.rejectionReason && (
+                          <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#E53E3E', fontWeight: 600, fontSize: '0.7rem' }}>
+                            ⚠️ {leave.rejectionReason}
+                          </Typography>
+                        )}
+                        {leave.status === 'approved' && leave.approvedBy && (
+                          <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#22c55e', fontWeight: 600, fontSize: '0.7rem' }}>
+                            ✓ By {leave.approvedBy.name}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell align="right">
+                        {leave.status === 'pending' ? (
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Button size="small" variant="contained" onClick={() => handleApprove(leave._id)} sx={{ bgcolor: '#48BB78', fontWeight: 800, fontSize: '0.65rem', textTransform: 'none', minWidth: '80px' }}>Approve</Button>
+                            <Button size="small" variant="outlined" onClick={() => handleReject(leave._id)} sx={{ color: '#E53E3E', borderColor: '#FED7D7', fontWeight: 800, fontSize: '0.65rem', textTransform: 'none', minWidth: '80px' }}>Decline</Button>
+                          </Stack>
+                        ) : (
+                          <Typography variant="caption" sx={{ color: '#A0AEC0', fontWeight: 700 }}>PROCESSED</Typography>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )) : (
+                  <TableRow><TableCell colSpan={isAdmin ? 6 : 5} align="center" sx={{ py: 10, color: '#94A3B8', fontWeight: 600 }}>NO LEAVE REQUESTS FOUND</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       </Container>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>

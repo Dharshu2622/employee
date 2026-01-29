@@ -7,6 +7,7 @@ const employeeSchema = new mongoose.Schema({
   password: { type: String, required: true },
   phone: { type: String },
   role: { type: String, enum: ['employee', 'admin', 'superior'], default: 'employee' },
+  gender: { type: String, enum: ['male', 'female', 'other'], default: 'male' },
   department: { type: String },
   position: { type: String },
   manager: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
@@ -19,7 +20,7 @@ const employeeSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 // Hash password before saving
-employeeSchema.pre('save', async function(next) {
+employeeSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   try {
     const salt = await bcrypt.genSalt(10);
@@ -31,7 +32,7 @@ employeeSchema.pre('save', async function(next) {
 });
 
 // Compare password method
-employeeSchema.methods.comparePassword = async function(password) {
+employeeSchema.methods.comparePassword = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 

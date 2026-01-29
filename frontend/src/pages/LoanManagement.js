@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, AppBar, Toolbar, IconButton, Paper, Typography, Grid, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Snackbar, Alert as MuiAlert, Card, CardContent } from '@mui/material';
+import { Box, Container, AppBar, Toolbar, IconButton, Paper, Typography, Grid, TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Snackbar, Alert as MuiAlert, Card, CardContent, Stack } from '@mui/material';
 import { ArrowBack, Add } from '@mui/icons-material';
 import api from '../api';
 import { useSelector } from 'react-redux';
@@ -83,8 +83,15 @@ export default function LoanManagement() {
   };
 
   const handleReject = async (id) => {
+    const reason = window.prompt('Please enter rejection reason:');
+    if (!reason || reason.trim() === '') {
+      setMessage('Rejection reason is required');
+      setShowSnack(true);
+      return;
+    }
+
     try {
-      await api.patch(`/loans/${id}/reject`, {});
+      await api.patch(`/loans/${id}/reject`, { rejectionReason: reason.trim() });
       setMessage('✓ Loan rejected');
       fetchLoans();
       setShowSnack(true);
@@ -100,55 +107,99 @@ export default function LoanManagement() {
   };
 
   return (
-    <Box sx={{ background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 50%, #e0c3fc 100%)', minHeight: '100vh' }}>
-      <AppBar position="sticky" sx={{ 
-        background: 'linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%)',
-        boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
-      }}>
-        <Toolbar>
-          <IconButton color="inherit" onClick={() => navigate(-1)} sx={{ '&:hover': { background: 'rgba(255,255,255,0.2)' } }}><ArrowBack /></IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: '800', fontSize: '1.4rem' }}>💳 Loan Management</Typography>
-          {!isAdmin && <Button color="inherit" startIcon={<Add />} onClick={() => setOpenDialog(true)} sx={{ fontWeight: '700', textTransform: 'none', fontSize: '1rem' }}>➕ Request Loan</Button>}
-        </Toolbar>
-      </AppBar>
+    <Box sx={{ bgcolor: '#F7FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* HEADER SECTION */}
+      <Box sx={{ p: 2, bgcolor: 'white', borderBottom: '1px solid #E2E8F0', minHeight: '64px' }}>
+        <Container maxWidth="xl">
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Stack direction="row" spacing={2} alignItems="center">
+              <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <ArrowBack sx={{ fontSize: 20, color: '#1A202C' }} />
+              </IconButton>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 800, color: '#1A202C', lineHeight: 1.2 }}>Loan Management</Typography>
+                <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>FINANCIAL ASSISTANCE | LIABILITY LOG</Typography>
+              </Box>
+            </Stack>
+            {!isAdmin && (
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<Add />}
+                onClick={() => setOpenDialog(true)}
+                sx={{ bgcolor: '#1A202C', fontWeight: 700, textTransform: 'none', px: 2, borderRadius: '8px', '&:hover': { bgcolor: '#2D3748' } }}
+              >
+                Request Assistance
+              </Button>
+            )}
+          </Stack>
+        </Container>
+      </Box>
 
-      <Container maxWidth="lg" sx={{ py: 5 }}>
-        <TableContainer component={Paper} sx={{ borderRadius: '18px', boxShadow: '0 8px 24px rgba(102, 126, 234, 0.15)' }}>
-          <Table>
-            <TableHead sx={{ background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)' }}>
-              <TableRow>
-                <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>👤 Employee</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>💰 Amount</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>📊 Monthly EMI</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>📅 Term</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>Status</TableCell>
-                {isAdmin && <TableCell sx={{ color: 'white', fontWeight: '800', fontSize: '1rem' }}>⚙️ Actions</TableCell>}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loans.map((loan) => (
-                <TableRow key={loan._id} sx={{ '&:hover': { background: 'rgba(102, 126, 234, 0.05)' }, transition: 'all 0.3s ease' }}>
-                  <TableCell sx={{ fontWeight: '600' }}>{loan.employee?.name || 'N/A'}</TableCell>
-                  <TableCell sx={{ fontWeight: '700', color: '#667eea', fontSize: '1.05rem' }}>₹{loan.amount.toLocaleString()}</TableCell>
-                  <TableCell sx={{ fontWeight: '600' }}>₹{loan.monthlyEMI.toLocaleString()}</TableCell>
-                  <TableCell sx={{ fontWeight: '500' }}>{loan.termMonths} months</TableCell>
-                  <TableCell><Chip label={loan.status} sx={{ background: getStatusColor(loan.status), color: 'white', fontWeight: '700' }} /></TableCell>
-                  {isAdmin && loan.status === 'pending' && (
-                    <TableCell>
-                      <Button size="small" color="success" onClick={() => handleApprove(loan._id)} sx={{ fontWeight: '600', '&:hover': { background: 'rgba(34, 197, 94, 0.1)' } }}>✓ Approve</Button>
-                      <Button size="small" color="error" onClick={() => handleReject(loan._id)} sx={{ fontWeight: '600', '&:hover': { background: 'rgba(239, 68, 68, 0.1)' } }}>✗ Reject</Button>
-                    </TableCell>
-                  )}
-                  {!isAdmin && loan.status === 'rejected' && loan.rejectionReason && (
-                    <TableCell>
-                      <Button size="small" onClick={() => { setSelectedLoan(loan); setShowDetailsDialog(true); }} sx={{ fontWeight: '600', color: '#ef4444', '&:hover': { background: 'rgba(239, 68, 68, 0.1)' } }}>👁️ View Reason</Button>
-                    </TableCell>
-                  )}
+      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 2, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Paper sx={{ flexGrow: 1, borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: 'none', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+          <TableContainer sx={{ flexGrow: 1, maxHeight: 'calc(100vh - 120px)', '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#E2E8F0', borderRadius: '10px' } }}>
+            <Table stickyHeader size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Personnel</TableCell>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Principal Amount</TableCell>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Monthly EMI</TableCell>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Term Duration</TableCell>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Reason</TableCell>
+                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Status</TableCell>
+                  {isAdmin && <TableCell align="right" sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Governance</TableCell>}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {loans.length > 0 ? loans.map((loan) => (
+                  <TableRow key={loan._id} hover sx={{ '& .MuiTableCell-root': { py: 1.5 } }}>
+                    <TableCell sx={{ fontWeight: 800, fontSize: '0.85rem' }}>{loan.employee?.name || 'N/A'}</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: '#2B6CB0', fontSize: '0.85rem' }}>₹{loan.amount.toLocaleString()}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: '#4A5568', fontSize: '0.85rem' }}>₹{loan.monthlyEMI.toLocaleString()}</TableCell>
+                    <TableCell sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#718096' }}>{loan.termMonths} Months</TableCell>
+                    <TableCell sx={{ fontSize: '0.8rem', color: '#64748B', maxWidth: '200px' }}>
+                      {loan.reason || '-'}
+                    </TableCell>
+                    <TableCell>
+                      <Box>
+                        <Chip
+                          label={loan.status}
+                          size="small"
+                          sx={{ bgcolor: getStatusColor(loan.status) + '15', color: getStatusColor(loan.status), fontWeight: 800, borderRadius: '4px', border: `1px solid ${getStatusColor(loan.status)}30`, fontSize: '0.65rem', textTransform: 'uppercase' }}
+                        />
+                        {loan.status === 'rejected' && loan.rejectionReason && (
+                          <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#E53E3E', fontWeight: 600, fontSize: '0.7rem' }}>
+                            ⚠️ {loan.rejectionReason}
+                          </Typography>
+                        )}
+                        {loan.status === 'approved' && loan.approvedBy && (
+                          <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: '#22c55e', fontWeight: 600, fontSize: '0.7rem' }}>
+                            ✓ By {loan.approvedBy.name}
+                          </Typography>
+                        )}
+                      </Box>
+                    </TableCell>
+                    {isAdmin && (
+                      <TableCell align="right">
+                        {loan.status === 'pending' ? (
+                          <Stack direction="row" spacing={1} justifyContent="flex-end">
+                            <Button size="small" variant="contained" onClick={() => handleApprove(loan._id)} sx={{ bgcolor: '#48BB78', fontWeight: 800, fontSize: '0.65rem', textTransform: 'none', minWidth: '80px' }}>Approve</Button>
+                            <Button size="small" variant="outlined" onClick={() => handleReject(loan._id)} sx={{ color: '#E53E3E', borderColor: '#FED7D7', fontWeight: 800, fontSize: '0.65rem', textTransform: 'none', minWidth: '80px' }}>Decline</Button>
+                          </Stack>
+                        ) : (
+                          <Typography variant="caption" sx={{ color: '#A0AEC0', fontWeight: 700 }}>AUDITED</Typography>
+                        )}
+                      </TableCell>
+                    )}
+                  </TableRow>
+                )) : (
+                  <TableRow><TableCell colSpan={isAdmin ? 7 : 6} align="center" sx={{ py: 10, color: '#94A3B8', fontWeight: 600 }}>ZERO ACTIVE LIABILITIES FOUND</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       </Container>
 
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>

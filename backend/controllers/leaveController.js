@@ -37,6 +37,7 @@ exports.getAllLeaves = async (req, res) => {
 exports.getLeavesByEmployee = async (req, res) => {
   try {
     const leaves = await Leave.find({ employee: req.params.employeeId })
+      .populate('employee', 'name email department')
       .populate('approvedBy', 'name email')
       .sort({ appliedOn: -1 });
     res.json(leaves);
@@ -65,22 +66,32 @@ exports.rejectLeave = async (req, res) => {
   try {
     const { rejectionReason } = req.body;
 
-    if (!rejectionReason || rejectionReason.trim() === '') {
-      return res.status(400).json({ message: 'Rejection reason is required' });
-    }
-
     const leave = await Leave.findByIdAndUpdate(
       req.params.id,
-      { 
-        status: 'rejected', 
-        approvedBy: req.user.id, 
+      {
+        status: 'rejected',
+        approvedBy: req.user.id,
         approvedOn: new Date(),
-        rejectionReason: rejectionReason.trim()
+        rejectionReason: rejectionReason?.trim() || 'No reason provided'
       },
       { new: true }
     ).populate('employee');
 
     res.json({ message: 'Leave rejected successfully', leave });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get pending requests count (Leaves + Loans)
+exports.getPendingRequestsCount = async (req, res) => {
+  try {
+    const Loan = require('../models/Loan');
+    const [pendingLeaves, pendingLoans] = await Promise.all([
+      Leave.countDocuments({ status: 'pending' }),
+      Loan.countDocuments({ status: 'pending' })
+    ]);
+    res.json({ count: pendingLeaves + pendingLoans });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

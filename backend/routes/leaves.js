@@ -10,5 +10,6 @@ router.get('/all', auth, authorize.permitRoles('admin', 'superior'), leaveContro
 router.get('/employee/:employeeId', auth, authorize.allowSelfOrRoles('employeeId', 'admin', 'superior'), leaveController.getLeavesByEmployee);
 router.patch('/:id/approve', auth, authorize.permitRoles('superior'), leaveController.approveLeave);
 router.patch('/:id/reject', auth, authorize.permitRoles('superior'), leaveController.rejectLeave);
+router.get('/pending/count', auth, authorize.permitRoles('admin', 'superior'), leaveController.getPendingRequestsCount);
 
 module.exports = router;

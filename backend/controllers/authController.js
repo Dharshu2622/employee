@@ -5,10 +5,18 @@ const jwt = require('jsonwebtoken');
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    // Check if user exists
     const user = await Employee.findOne({ email });
 
-    if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    if (!user) {
+      return res.status(401).json({ message: 'No account found with this email address. Please check your email or contact your administrator.' });
+    }
+
+    // Check if password is correct
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Incorrect password. Please try again or use Access Recovery.' });
     }
 
     const token = jwt.sign(

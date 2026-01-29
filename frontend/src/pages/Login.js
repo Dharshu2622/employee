@@ -4,7 +4,6 @@ import { useDispatch } from 'react-redux';
 import {
   Box,
   Container,
-  Paper,
   TextField,
   Button,
   Typography,
@@ -12,11 +11,44 @@ import {
   InputAdornment,
   IconButton,
   Snackbar,
-  Alert
+  Alert,
+  useTheme,
+  useMediaQuery,
+  Stack,
+  FormControlLabel,
+  Checkbox,
+  Link,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Fade,
+  Grow
 } from '@mui/material';
-import { Visibility, VisibilityOff, Lock, Email } from '@mui/icons-material';
+import {
+  Visibility,
+  VisibilityOff,
+  Lock,
+  Email,
+  Person,
+  Stars,
+  AdminPanelSettings,
+  Shield,
+  ReportProblemOutlined,
+  CheckCircle,
+  AccountTreeOutlined,
+  VerifiedUser,
+  Storage,
+  Groups,
+  Rule,
+  Timeline,
+  AccountBalanceWallet,
+  AssignmentTurnedIn,
+  RequestQuote
+} from '@mui/icons-material';
 import api from '../api';
-import { loginSuccess, setLoading, loginFailure } from '../redux/authSlice';
+import { loginSuccess } from '../redux/authSlice';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -27,23 +59,32 @@ export default function Login() {
   const [message, setMessage] = useState('');
   const [severity, setSeverity] = useState('error');
   const [showSnack, setShowSnack] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isCapsLockOn, setIsCapsLockOn] = useState(false);
+  const [openRecovery, setOpenRecovery] = useState(false);
+  const [recoveryStep, setRecoveryStep] = useState(1);
+
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  const validateEmail = (email) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const checkCapsLock = (e) => {
+    setIsCapsLockOn(e.getModifierState('CapsLock'));
   };
+
+  const validateEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 
   const handleLogin = async () => {
     if (!validateEmail(email)) {
-      setMessage('Please enter a valid email');
+      setMessage('Enterprise email required');
       setSeverity('error');
       setShowSnack(true);
       return;
     }
 
     if (password.length < 6) {
-      setMessage('Password must be at least 6 characters');
+      setMessage('Invalid credentials format');
       setSeverity('error');
       setShowSnack(true);
       return;
@@ -52,9 +93,8 @@ export default function Login() {
     setLoadingState(true);
     try {
       const response = await api.post('/auth/login', { email, password });
-
       dispatch(loginSuccess(response.data));
-      setMessage('Login successful!');
+      setMessage('Authenticated successfully');
       setSeverity('success');
       setShowSnack(true);
 
@@ -65,12 +105,17 @@ export default function Login() {
         else navigate('/employee/dashboard');
       }, 800);
     } catch (err) {
-      setMessage(err.response?.data?.message || 'Login failed');
+      setMessage(err.response?.data?.message || 'Authentication failed');
       setSeverity('error');
       setShowSnack(true);
     } finally {
       setLoadingState(false);
     }
+  };
+
+  const handleAccessRecovery = (e) => {
+    e.preventDefault();
+    setOpenRecovery(true);
   };
 
   const fillDemoCredentials = () => {
@@ -86,213 +131,287 @@ export default function Login() {
     }
   };
 
+  const roleConfigs = {
+    admin: {
+      title: 'Global Administration',
+      subtitle: 'System core management and infrastructure control.',
+      points: [
+        { icon: <Storage sx={{ color: '#3182CE' }} />, title: 'Infrastucture Control', desc: 'Secure database management & scaling.' },
+        { icon: <Shield sx={{ color: '#3182CE' }} />, title: 'Access Auditing', desc: 'Full traceability of system-wide actions.' },
+        { icon: <Rule sx={{ color: '#3182CE' }} />, title: 'Security Protocols', desc: 'Military-grade encryption standards.' }
+      ]
+    },
+    superior: {
+      title: 'Management Operations',
+      subtitle: 'Oversee departmental growth and team productivity.',
+      points: [
+        { icon: <Groups sx={{ color: '#3182CE' }} />, title: 'Team Oversight', desc: 'Manage assignments & performance.' },
+        { icon: <AssignmentTurnedIn sx={{ color: '#3182CE' }} />, title: 'Reqest Approval', desc: 'Streamlined validation workflow.' },
+        { icon: <Timeline sx={{ color: '#3182CE' }} />, title: 'Analytics Engine', desc: 'Visual representation of departmental stats.' }
+      ]
+    },
+    employee: {
+      title: 'Member Financial Hub',
+      subtitle: 'Secure access to your personal financial records.',
+      points: [
+        { icon: <AccountBalanceWallet sx={{ color: '#3182CE' }} />, title: 'Earnings Ledger', desc: 'Transparent history of your compensation.' },
+        { icon: <AccountTreeOutlined sx={{ color: '#3182CE' }} />, title: 'Attendance Record', desc: 'Personalized tracking of work hours.' },
+        { icon: <RequestQuote sx={{ color: '#3182CE' }} />, title: 'Resource Access', desc: 'Apply for loans and other benefits.' }
+      ]
+    }
+  };
+
+  const currentConfig = roleConfigs[role];
+
+  const RoleOption = ({ type, icon: Icon, label }) => (
+    <Box
+      onClick={() => setRole(type)}
+      sx={{
+        flex: 1,
+        p: 1.5,
+        cursor: 'pointer',
+        borderRadius: '6px',
+        border: '1px solid',
+        borderColor: role === type ? theme.palette.primary.main : '#E2E8F0',
+        background: role === type ? '#F8FAFC' : 'white',
+        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+        textAlign: 'center',
+        '&:hover': {
+          borderColor: theme.palette.primary.main,
+          background: '#F8FAFC',
+          transform: 'translateY(-2px)'
+        }
+      }}
+    >
+      <Icon sx={{ color: role === type ? theme.palette.primary.main : '#94A3B8', fontSize: '1.2rem', mb: 0.5 }} />
+      <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: role === type ? theme.palette.primary.main : '#64748B', fontSize: '0.65rem' }}>
+        {label}
+      </Typography>
+    </Box>
+  );
+
   return (
-    <Box sx={{ 
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)', 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center',
-      position: 'relative',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: 'radial-gradient(circle at 20% 50%, rgba(102,126,234,0.1) 0%, transparent 50%)',
-        pointerEvents: 'none'
-      }
+    <Box sx={{
+      height: '100vh',
+      display: 'flex',
+      background: '#F7FAFC',
+      overflow: 'hidden'
     }}>
-      <Container maxWidth="sm" sx={{ position: 'relative', zIndex: 1 }}>
-        <Paper elevation={8} sx={{ 
-          p: 5, 
-          borderRadius: '25px', 
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 100%)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.5)',
-          boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-        }}>
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography variant="h4" sx={{ mb: 1, fontWeight: '800', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              💼 Salary Management
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#999', fontWeight: 500 }}>
-              Smart Employee Portal
-            </Typography>
-          </Box>
+      <Grid container sx={{ height: '100%' }}>
+        {/* SIDE SECTION - DYNAMIC & ANIMATED */}
+        {!isMobile && (
+          <Grid item md={6} lg={7} sx={{
+            background: '#1A202C',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            p: 10,
+            color: 'white',
+            position: 'relative'
+          }}>
+            <Fade in={true} key={role} timeout={600}>
+              <Stack spacing={4}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Shield sx={{ fontSize: 28, color: '#3182CE' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 800, letterSpacing: -0.5, color: '#CBD5E0' }}>
+                    SalaryPro <span style={{ fontWeight: 400, color: '#718096' }}>Enterprise</span>
+                  </Typography>
+                </Box>
 
-          <Grid container spacing={2} sx={{ mb: 4 }}>
-            <Grid item xs={4}>
-              <Button
-                fullWidth
-                variant={role === 'admin' ? 'contained' : 'outlined'}
-                onClick={() => setRole('admin')}
-                sx={{ 
-                  borderRadius: '12px', 
-                  py: 1.5,
-                  fontWeight: 'bold',
-                  background: role === 'admin' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                  border: role === 'admin' ? 'none' : '2px solid #667eea',
-                  color: role === 'admin' ? 'white' : '#667eea',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: role === 'admin' ? '0 8px 16px rgba(102, 126, 234, 0.4)' : 'none',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-              >
-                👨‍💼 Admin
-              </Button>
-            </Grid>
-            <Grid item xs={4}>
-              <Button
-                fullWidth
-                variant={role === 'superior' ? 'contained' : 'outlined'}
-                onClick={() => setRole('superior')}
-                sx={{ 
-                  borderRadius: '12px', 
-                  py: 1.5,
-                  fontWeight: 'bold',
-                  background: role === 'superior' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                  border: role === 'superior' ? 'none' : '2px solid #667eea',
-                  color: role === 'superior' ? 'white' : '#667eea',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: role === 'superior' ? '0 8px 16px rgba(102, 126, 234, 0.4)' : 'none',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-              >
-                ⭐ Superior
-              </Button>
-            </Grid>
-            <Grid item xs={4}>
-              <Button
-                fullWidth
-                variant={role === 'employee' ? 'contained' : 'outlined'}
-                onClick={() => setRole('employee')}
-                sx={{ 
-                  borderRadius: '12px', 
-                  py: 1.5,
-                  fontWeight: 'bold',
-                  background: role === 'employee' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
-                  border: role === 'employee' ? 'none' : '2px solid #667eea',
-                  color: role === 'employee' ? 'white' : '#667eea',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    boxShadow: role === 'employee' ? '0 8px 16px rgba(102, 126, 234, 0.4)' : 'none',
-                    transform: 'translateY(-2px)'
-                  }
-                }}
-              >
-                👤 Employee
-              </Button>
-            </Grid>
+                <Box>
+                  <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: -1, mb: 1.5 }}>
+                    {currentConfig.title}
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: '#A0AEC0', fontWeight: 300, maxWidth: '400px' }}>
+                    {currentConfig.subtitle}
+                  </Typography>
+                </Box>
+
+                <Stack spacing={2.5}>
+                  {currentConfig.points.map((item, i) => (
+                    <Grow in={true} key={`${role}-${i}`} timeout={(i + 1) * 300}>
+                      <Box sx={{ display: 'flex', gap: 2 }}>
+                        {item.icon}
+                        <Box>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{item.title}</Typography>
+                          <Typography variant="caption" sx={{ color: '#718096' }}>{item.desc}</Typography>
+                        </Box>
+                      </Box>
+                    </Grow>
+                  ))}
+                </Stack>
+              </Stack>
+            </Fade>
+
+            {/* Subtle Corporate Background Decoration */}
+            <Box sx={{
+              position: 'absolute', bottom: 40, right: 40, opacity: 0.1, pointerEvents: 'none'
+            }}>
+              <Box sx={{ width: 300, height: 300, border: '40px solid #cbd5e0', borderRadius: '50%', filter: 'blur(20px)' }} />
+            </Box>
           </Grid>
+        )}
 
-          <TextField
-            fullWidth
-            label="Email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            margin="normal"
-            placeholder="Enter your email"
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><Email sx={{ color: '#667eea' }} /></InputAdornment>
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                background: '#f8f9ff',
-                transition: 'all 0.3s ease',
-                '& fieldset': { borderColor: '#e0e0ff', borderWidth: '2px' },
-                '&:hover fieldset': { borderColor: '#667eea', boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)' },
-                '&.Mui-focused fieldset': { borderColor: '#667eea', boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)' }
-              }
-            }}
-          />
+        {/* LOGIN FORM SECTION */}
+        <Grid item xs={12} md={6} lg={5} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: 4, background: 'white' }}>
+          <Stack spacing={5} sx={{ width: '100%', maxWidth: '360px' }}>
+            <Box>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: '#1A202C', letterSpacing: -1 }}>
+                Authorize Access
+              </Typography>
+              <Typography variant="body2" sx={{ color: '#718096', mt: 1 }}>
+                Please select your mode and sign in.
+              </Typography>
+            </Box>
 
-          <TextField
-            fullWidth
-            label="Password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            margin="normal"
-            placeholder="Enter your password"
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><Lock sx={{ color: '#667eea' }} /></InputAdornment>,
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" sx={{ color: '#667eea' }}>
-                    {showPassword ? <Visibility /> : <VisibilityOff />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
-                background: '#f8f9ff',
-                transition: 'all 0.3s ease',
-                '& fieldset': { borderColor: '#e0e0ff', borderWidth: '2px' },
-                '&:hover fieldset': { borderColor: '#667eea', boxShadow: '0 4px 12px rgba(102, 126, 234, 0.15)' },
-                '&.Mui-focused fieldset': { borderColor: '#667eea', boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)' }
-              }
-            }}
-          />
+            <Stack spacing={4}>
+              <Box>
+                <Typography variant="caption" sx={{ mb: 1.5, display: 'block', color: '#718096', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Interface Mode
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                  <RoleOption type="admin" icon={AdminPanelSettings} label="Admin" />
+                  <RoleOption type="superior" icon={Stars} label="Superior" />
+                  <RoleOption type="employee" icon={Person} label="Member" />
+                </Stack>
+              </Box>
 
+              <Stack spacing={3}>
+                <TextField
+                  fullWidth
+                  label="Work Email"
+                  variant="outlined"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start"><Email sx={{ color: '#A0AEC0', fontSize: 20 }} /></InputAdornment>
+                  }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '6px' } }}
+                />
+
+                <Box sx={{ position: 'relative' }}>
+                  <TextField
+                    fullWidth
+                    label="Credential Key"
+                    type={showPassword ? 'text' : 'password'}
+                    variant="outlined"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyUp={checkCapsLock}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start"><Lock sx={{ color: '#A0AEC0', fontSize: 20 }} /></InputAdornment>,
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => setShowPassword(!showPassword)} edge="end" size="small">
+                            {showPassword ? <VisibilityOff sx={{ fontSize: 20 }} /> : <Visibility sx={{ fontSize: 20 }} />}
+                          </IconButton>
+                        </InputAdornment>
+                      )
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '6px' } }}
+                  />
+                  {isCapsLockOn && (
+                    <Typography variant="caption" sx={{ color: '#ED8936', fontWeight: 600, position: 'absolute', right: 0, mt: 0.5 }}>
+                      Caps Lock Active
+                    </Typography>
+                  )}
+                </Box>
+
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <FormControlLabel
+                    control={<Checkbox checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} size="small" />}
+                    label={<Typography variant="caption" sx={{ color: '#4A5568', fontWeight: 500 }}>Remember Device</Typography>}
+                  />
+                  <Link
+                    href="#"
+                    onClick={handleAccessRecovery}
+                    sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#3182CE', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                  >
+                    Access Recovery
+                  </Link>
+                </Stack>
+
+                <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={handleLogin}
+                  disabled={loading}
+                  sx={{
+                    py: 1.8,
+                    borderRadius: '6px',
+                    fontWeight: 800,
+                    textTransform: 'none',
+                    fontSize: '0.9rem',
+                    background: '#1A202C',
+                    boxShadow: 'none',
+                    transition: 'all 0.2s ease',
+                    '&:hover': { background: '#2D3748', boxShadow: 'none', transform: 'translateY(-1px)' }
+                  }}
+                >
+                  {loading ? <CircularProgress size={20} color="inherit" /> : 'Confirm Identity'}
+                </Button>
+              </Stack>
+
+              <Box sx={{ pt: 2, textAlign: 'center' }}>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={fillDemoCredentials}
+                  sx={{ color: '#CBD5E0', fontSize: '0.65rem', '&:hover': { background: 'transparent', color: '#718096' } }}
+                >
+                  Load Simulation Data
+                </Button>
+              </Box>
+            </Stack>
+
+            <Box sx={{ mt: 'auto', textAlign: 'center', pt: 4 }}>
+              <Typography variant="caption" sx={{ color: '#E2E8F0', fontSize: '0.7rem' }}>
+                © 2026 SalaryPro Ecosystem. All rights reserved.
+              </Typography>
+            </Box>
+          </Stack>
+        </Grid>
+      </Grid>
+
+      {/* ACCESS RECOVERY DIALOG */}
+      <Dialog
+        open={openRecovery}
+        onClose={() => setOpenRecovery(false)}
+        PaperProps={{ sx: { borderRadius: '12px', p: 1, maxWidth: '400px' } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: '#1A202C' }}>
+          Access Recovery Portal
+        </DialogTitle>
+        <DialogContent>
+          {recoveryStep === 1 ? (
+            <Typography variant="body2" sx={{ color: '#4A5568', mb: 2 }}>
+              For security reasons, salary management accounts require manual verification. Please contact your internal System Administrator or HR department to initiate a credential reset.
+            </Typography>
+          ) : (
+            <Typography variant="body2" sx={{ color: '#4A5568', mb: 2 }}>
+              A request has been logged. Your department head will be notified for identity verification. Please await further instructions via your secure work email.
+            </Typography>
+          )}
+          <Box sx={{ p: 2, bgcolor: '#f8f9fa', borderRadius: '8px', border: '1px solid #e9ecef' }}>
+            <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, mb: 1 }}>System Reference:</Typography>
+            <Typography variant="caption" sx={{ fontFamily: 'monospace', color: '#718096' }}>SEC-UUID: {Math.random().toString(36).substr(2, 9).toUpperCase()}</Typography>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setOpenRecovery(false)} sx={{ color: '#718096', textTransform: 'none' }}>Cancel</Button>
           <Button
-            fullWidth
             variant="contained"
-            onClick={handleLogin}
-            disabled={loading}
-            sx={{ 
-              mt: 4, 
-              borderRadius: '12px', 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-              py: 1.8, 
-              fontWeight: '800',
-              fontSize: '1rem',
-              textTransform: 'none',
-              boxShadow: '0 8px 24px rgba(102, 126, 234, 0.4)',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 12px 32px rgba(102, 126, 234, 0.6)'
-              },
-              '&:disabled': {
-                background: '#ccc'
-              }
-            }}
+            onClick={() => recoveryStep === 1 ? setRecoveryStep(2) : setOpenRecovery(false)}
+            sx={{ bgcolor: '#1A202C', textTransform: 'none', borderRadius: '6px', '&:hover': { bgcolor: '#2D3748' } }}
           >
-            {loading ? '⏳ Logging in...' : '🚀 Login'}
+            {recoveryStep === 1 ? 'Initiate Request' : 'Close'}
           </Button>
+        </DialogActions>
+      </Dialog>
 
-          <Button
-            fullWidth
-            variant="text"
-            onClick={fillDemoCredentials}
-            sx={{ 
-              mt: 2, 
-              color: '#667eea',
-              fontWeight: '600',
-              textTransform: 'none',
-              '&:hover': {
-                background: 'rgba(102, 126, 234, 0.05)'
-              }
-            }}
-          >
-            ⭐ Try Demo Credentials
-          </Button>
-
-          <Snackbar open={showSnack} autoHideDuration={4000} onClose={() => setShowSnack(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-            <Alert severity={severity} sx={{ borderRadius: '10px' }}>{message}</Alert>
-          </Snackbar>
-        </Paper>
-      </Container>
+      <Snackbar open={showSnack} autoHideDuration={4000} onClose={() => setShowSnack(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+        <Alert severity={severity} variant="filled" sx={{ borderRadius: '4px', fontSize: '0.8rem' }}>{message}</Alert>
+      </Snackbar>
     </Box>
   );
 }

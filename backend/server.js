@@ -23,6 +23,11 @@ app.use('/api/salary', require('./routes/salary'));
 app.use('/api/leaves', require('./routes/leaves'));
 app.use('/api/loans', require('./routes/loans'));
 app.use('/api/payslips', require('./routes/payslips'));
+app.use('/api/settings', require('./routes/settings'));
+app.use('/api/dashboard', require('./routes/dashboard'));
+
+// Serve Uploads
+app.use('/uploads', express.static('uploads'));
 
 // Health check
 app.get('/api/health', (req, res) => {
