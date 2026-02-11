@@ -41,7 +41,7 @@ export default function SuperiorLeaves() {
 
     const fetchLeaves = async () => {
         try {
-            const resp = await api.get('/leaves');
+            const resp = await api.get('/leaves/all');
             setLeaves(resp.data);
         } catch (err) {
             console.error(err);
@@ -52,7 +52,7 @@ export default function SuperiorLeaves() {
 
     const handleApprove = async (id) => {
         try {
-            await api.put(`/leaves/approve/${id}`);
+            await api.patch(`/leaves/${id}/approve`);
             setMessage('Leave request approved');
             setShowSnack(true);
             fetchLeaves();
@@ -70,7 +70,7 @@ export default function SuperiorLeaves() {
     const handleRejectSubmit = async () => {
         if (!rejectionReason.trim()) return;
         try {
-            await api.put(`/leaves/reject/${selectedLeave._id}`, { rejectionReason });
+            await api.patch(`/leaves/${selectedLeave._id}/reject`, { rejectionReason });
             setOpenReject(false);
             setRejectionReason('');
             setMessage('Leave request rejected');

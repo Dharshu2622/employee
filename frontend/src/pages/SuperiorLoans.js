@@ -41,7 +41,7 @@ export default function SuperiorLoans() {
 
     const fetchLoans = async () => {
         try {
-            const resp = await api.get('/loans');
+            const resp = await api.get('/loans/all');
             setLoans(resp.data);
         } catch (err) {
             console.error(err);
@@ -52,7 +52,7 @@ export default function SuperiorLoans() {
 
     const handleApprove = async (id) => {
         try {
-            await api.put(`/loans/approve/${id}`);
+            await api.patch(`/loans/${id}/approve`);
             setMessage('Loan request approved');
             setShowSnack(true);
             fetchLoans();
@@ -70,7 +70,7 @@ export default function SuperiorLoans() {
     const handleRejectSubmit = async () => {
         if (!rejectionReason.trim()) return;
         try {
-            await api.put(`/loans/reject/${selectedLoan._id}`, { rejectionReason });
+            await api.patch(`/loans/${selectedLoan._id}/reject`, { rejectionReason });
             setOpenReject(false);
             setRejectionReason('');
             setMessage('Loan request rejected');

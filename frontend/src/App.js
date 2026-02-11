@@ -21,6 +21,8 @@ import SuperiorAttendance from './pages/SuperiorAttendance';
 import SuperiorLeaves from './pages/SuperiorLeaves';
 import SuperiorLoans from './pages/SuperiorLoans';
 import SuperiorPayroll from './pages/SuperiorPayroll';
+import SuperiorManagement from './pages/SuperiorManagement';
+
 
 // Protected Route Component
 function ProtectedRoute({ children, requiredRole }) {
@@ -46,6 +48,8 @@ function AppRoutes() {
       <Route path="/admin/dashboard" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/requests" element={<ProtectedRoute requiredRole="admin"><AdminRequests /></ProtectedRoute>} />
       <Route path="/admin/employees" element={<ProtectedRoute requiredRole="admin"><EmployeeManagement /></ProtectedRoute>} />
+      <Route path="/admin/superiors" element={<ProtectedRoute requiredRole="admin"><SuperiorManagement /></ProtectedRoute>} />
+
       <Route path="/admin/attendance" element={<ProtectedRoute requiredRole="admin"><AttendanceManagement /></ProtectedRoute>} />
       <Route path="/admin/salary" element={<ProtectedRoute requiredRole="admin"><SalaryManagement /></ProtectedRoute>} />
       <Route path="/admin/leaves" element={<ProtectedRoute requiredRole="admin"><LeaveManagement /></ProtectedRoute>} />

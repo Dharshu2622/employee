@@ -120,13 +120,10 @@ export default function PayslipManagement() {
   const handleDownload = async (id) => {
     try {
       const response = await api.get(`/payslips/${id}/download`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Secure_Audit_${id}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      setMessage('✓ Secure document encryption complete');
+      const file = new Blob([response.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL);
+      setMessage('✓ Payslip archetyped and decrypted for viewing');
       setShowSnack(true);
     } catch (err) {
       setMessage('Credential download error');

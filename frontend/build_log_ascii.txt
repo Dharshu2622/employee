@@ -1,0 +1,122 @@
+
+> employee-salary-management-frontend@0.1.0 build
+> react-scripts build
+
+node.exe : 
+[baseline-browser-mapping] 
+The data in this module is 
+over two months old.  To 
+ensure accurate Baseline 
+data, please update: `npm i 
+baseline-browser-mapping@lat
+est -D`
+At C:\Program 
+Files\nodejs\npm.ps1:29 
+char:3
++   & $NODE_EXE $NPM_CLI_JS 
+$args
++   ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo          
+    : NotSpecified: ([base  
+  line-brows...ping@lates   
+ t -D`:String) [], Remot    
+eException
+    + FullyQualifiedErrorId 
+    : NativeCommandError
+ 
+Creating an optimized production build...
+
+Treating warnings as errors because process.env.CI = true.
+Most CI servers set it automatically.
+
+Failed to compile.
+
+[eslint] 
+src\index.js
+  Line 3:25:  'createTheme' is defined but never used  no-unused-vars
+
+src\pages\AdminDashboard.js
+  Line 21:3:  'Tooltip' is defined but never used  no-unused-vars
+
+src\pages\AdminRequests.js
+  Line 35:3:  'CheckCircle' is defined but never used         no-unused-vars
+  Line 36:3:  'Cancel' is defined but never used              no-unused-vars
+  Line 37:3:  'HistoryEdu' is defined but never used          no-unused-vars
+  Line 39:3:  'AdminPanelSettings' is defined but never used  no-unused-vars
+  Line 40:3:  'Person' is defined but never used              no-unused-vars
+  Line 44:3:  'Rule' is defined but never used                no-unused-vars
+
+src\pages\AdminSettings.js
+  Line 19:5:  'Switch' is defined but never used            no-unused-vars
+  Line 20:5:  'FormControlLabel' is defined but never used  no-unused-vars
+  Line 21:5:  'Card' is defined but never used              no-unused-vars
+  Line 22:5:  'CardContent' is defined but never used       no-unused-vars
+
+src\pages\AttendanceManagement.js
+  Line 28:6:  React Hook useEffect has a missing dependency: 'fetchAttendance'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\EmployeeDashboard.js
+  Line 7:3:   'AppBar' is defined but never used                                                                                no-unused-vars
+  Line 8:3:   'Toolbar' is defined but never used                                                                               no-unused-vars
+  Line 12:3:  'Card' is defined but never used                                                                                  no-unused-vars
+  Line 13:3:  'CardContent' is defined but never used                                                                           no-unused-vars
+  Line 48:6:  React Hook useEffect has a missing dependency: 'fetchUserData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\LeaveManagement.js
+  Line 3:26:   'AppBar' is defined but never used                                                                              no-unused-vars
+  Line 3:34:   'Toolbar' is defined but never used                                                                             no-unused-vars
+  Line 3:74:   'Grid' is defined but never used                                                                                no-unused-vars
+  Line 16:25:  'setSelectedLeave' is assigned a value but never used                                                           no-unused-vars
+  Line 24:6:   React Hook useEffect has a missing dependency: 'fetchLeaves'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\LoanManagement.js
+  Line 3:26:   'AppBar' is defined but never used                                                                             no-unused-vars
+  Line 3:34:   'Toolbar' is defined but never used                                                                            no-unused-vars
+  Line 3:74:   'Grid' is defined but never used                                                                               no-unused-vars
+  Line 17:24:  'setSelectedLoan' is assigned a value but never used                                                           no-unused-vars
+  Line 25:6:   React Hook useEffect has a missing dependency: 'fetchLoans'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\Login.js
+  Line 1:17:  'useEffect' is defined but never used              no-unused-vars
+  Line 6:3:   'Container' is defined but never used              no-unused-vars
+  Line 38:3:  'ReportProblemOutlined' is defined but never used  no-unused-vars
+  Line 39:3:  'CheckCircle' is defined but never used            no-unused-vars
+  Line 41:3:  'VerifiedUser' is defined but never used           no-unused-vars
+
+src\pages\PayslipManagement.js
+  Line 8:3:   'Grid' is defined but never used                                                                                  no-unused-vars
+  Line 33:3:  'Divider' is defined but never used                                                                               no-unused-vars
+  Line 38:3:  'Email' is defined but never used                                                                                 no-unused-vars
+  Line 39:3:  'Add' is defined but never used                                                                                   no-unused-vars
+  Line 40:3:  'Badge' is defined but never used                                                                                 no-unused-vars
+  Line 41:3:  'HistoryEdu' is defined but never used                                                                            no-unused-vars
+  Line 42:3:  'Print' is defined but never used                                                                                 no-unused-vars
+  Line 43:3:  'VerifiedUser' is defined but never used                                                                          no-unused-vars
+  Line 73:6:  React Hook useEffect has a missing dependency: 'fetchPayslips'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\SalaryManagement.js
+  Line 40:3:   'Payments' is defined but never used                  no-unused-vars
+  Line 41:3:   'AccountBalance' is defined but never used            no-unused-vars
+  Line 42:3:   'ReceiptLong' is defined but never used               no-unused-vars
+  Line 45:3:   'HistoryEdu' is defined but never used                no-unused-vars
+  Line 48:3:   'Savings' is defined but never used                   no-unused-vars
+  Line 82:10:  'loadingSalaries' is assigned a value but never used  no-unused-vars
+  Line 87:9:   'isAdmin' is assigned a value but never used          no-unused-vars
+
+src\pages\SuperiorAttendance.js
+  Line 26:52:  'CalendarMonth' is defined but never used                                                                     no-unused-vars
+  Line 41:8:   React Hook useEffect has a missing dependency: 'fetchData'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+src\pages\SuperiorDashboard.js
+  Line 103:11:  'theme' is assigned a value but never used  no-unused-vars
+
+src\pages\SuperiorManagement.js
+  Line 39:5:  'PersonAdd' is defined but never used  no-unused-vars
+
+src\pages\SuperiorPayroll.js
+  Line 39:5:   'Visibility' is defined but never used         no-unused-vars
+  Line 40:5:   'PlayArrow' is defined but never used          no-unused-vars
+  Line 58:11:  'navigate' is assigned a value but never used  no-unused-vars
+
+

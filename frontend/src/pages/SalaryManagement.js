@@ -27,7 +27,13 @@ import {
   CircularProgress,
   Tooltip,
   Avatar,
-  Chip
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
 } from '@mui/material';
 import {
   ArrowBack,
@@ -42,7 +48,11 @@ import {
   Savings,
   PriceCheck,
   Inventory,
-  Visibility
+  Visibility,
+  DoneAll,
+  Search,
+  Mail,
+  FileDownload
 } from '@mui/icons-material';
 import api from '../api';
 
@@ -68,6 +78,9 @@ export default function SalaryManagement() {
   const [selectedEmployeeForGen, setSelectedEmployeeForGen] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [generating, setGenerating] = useState(false);
+  const [salaries, setSalaries] = useState([]);
+  const [loadingSalaries, setLoadingSalaries] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const navigate = useNavigate();
   const user = useSelector(state => state.auth.user);
@@ -75,38 +88,74 @@ export default function SalaryManagement() {
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+    fetchSalaries();
+    const interval = setInterval(fetchSalaries, 30000); // Background sync
+    return () => clearInterval(interval);
+  }, [selectedMonth]);
 
   const fetchEmployees = async () => {
     try {
       const res = await api.get('/admin/employees');
-      setEmployees(res.data || []);
+      // Only show superior employees as requested
+      const superiorEmployees = (res.data || []).filter(emp => emp.role === 'superior');
+      setEmployees(superiorEmployees);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const fetchSalaries = async () => {
+    setLoadingSalaries(true);
+    try {
+      const res = await api.get('/salary/all');
+      setSalaries(res.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingSalaries(false);
     }
   };
 
   const fetchEmployeeData = async (id) => {
     if (!id) return;
     try {
-      // Fetch loans for the specific employee
+      // 1. Fetch current month salary preview for high-integrity projection
+      const monthStr = new Date().toISOString().slice(0, 7);
+      const previewRes = await api.get(`/salary/preview?employeeId=${id}&month=${monthStr}`).catch(() => null);
+
+      if (previewRes && previewRes.data) {
+        const data = previewRes.data;
+        setForm({
+          baseSalary: data.base || 0,
+          hra: data.allowances?.hra || 0,
+          da: data.allowances?.da || 0,
+          travel: data.allowances?.travel || 0,
+          medical: data.allowances?.medical || 0,
+          pf: data.deductions?.pf || 0,
+          tax: data.deductions?.tax || 0,
+          insurance: data.deductions?.insurance || 0
+        });
+        // We can also store the EMI and LOP if we want to show them in the UI
+      } else {
+        // Fallback to basic structure if preview fails (e.g. month-specific record issues)
+        const salRes = await api.get(`/salary/structure/${id}`).catch(() => null);
+        if (salRes && salRes.data) {
+          setForm({
+            baseSalary: salRes.data.baseSalary || 0,
+            hra: salRes.data.allowances?.hra || 0,
+            da: salRes.data.allowances?.da || 0,
+            travel: salRes.data.allowances?.travel || 0,
+            medical: salRes.data.allowances?.medical || 0,
+            pf: salRes.data.deductions?.pf || 0,
+            tax: salRes.data.deductions?.tax || 0,
+            insurance: salRes.data.deductions?.insurance || 0
+          });
+        }
+      }
+
+      // 2. Fetch loans for the specific employee UI monitor
       const loanRes = await api.get(`/loans/employee/${id}`);
       setEmployeeLoans(loanRes.data || []);
-
-      // Fetch current salary structure if it exists
-      const salRes = await api.get(`/salary/structure/${id}`).catch(() => null);
-      if (salRes && salRes.data) {
-        setForm({
-          baseSalary: salRes.data.baseSalary || 0,
-          hra: salRes.data.allowances?.hra || 0,
-          da: salRes.data.allowances?.da || 0,
-          travel: salRes.data.allowances?.travel || 0,
-          medical: salRes.data.allowances?.medical || 0,
-          pf: salRes.data.deductions?.pf || 0,
-          tax: salRes.data.deductions?.tax || 0,
-          insurance: salRes.data.deductions?.insurance || 0
-        });
-      }
     } catch (err) {
       console.error('Error fetching employee financials:', err);
     }
@@ -119,22 +168,25 @@ export default function SalaryManagement() {
   };
 
   const handleChange = (key) => (e) => {
-    if (isAdmin) return; // Prevent input changes for admin
+    // Admin and Superior can both edit structures now
     setForm(prev => ({ ...prev, [key]: Number(e.target.value || 0) }));
   };
 
-  const gross = form.baseSalary + form.hra + form.da + form.travel + form.medical;
-  const totalDeductions = form.pf + form.tax + form.insurance;
-  const net = gross - totalDeductions;
-
-  // Loan Summary Calculations
   const activeLoans = employeeLoans.filter(l => l.status === 'approved');
   const totalLoanAmount = activeLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
   const deductedLoanAmount = activeLoans.reduce((sum, l) => sum + (l.paidAmount || 0), 0);
   const remainingLoanBalance = totalLoanAmount - deductedLoanAmount;
 
+  const currentMonthEMI = activeLoans.reduce((sum, loan) => {
+    const remaining = loan.amount - (loan.paidAmount || 0);
+    return sum + Math.min(loan.monthlyEMI || 0, remaining);
+  }, 0);
+
+  const gross = form.baseSalary + form.hra + form.da + form.travel + form.medical;
+  const totalDeductions = form.pf + form.tax + form.insurance + currentMonthEMI;
+  const net = gross - totalDeductions;
+
   const handleSave = async () => {
-    if (isAdmin) return;
     if (!selectedEmployee) {
       setMessage('Identification of personnel required');
       setShowSnack(true);
@@ -142,16 +194,18 @@ export default function SalaryManagement() {
     }
     setSaving(true);
     try {
-      await api.post('/salary/structure', {
+      const res = await api.post('/salary/structure', {
         employeeId: selectedEmployee,
         baseSalary: form.baseSalary,
         allowances: { hra: form.hra, da: form.da, travel: form.travel, medical: form.medical },
         deductions: { pf: form.pf, tax: form.tax, insurance: form.insurance }
       });
-      setMessage('✓ Financial structure successfully archived');
+      setMessage(`✓ ${res.data.message || 'Audit record successfully archived'}`);
       setShowSnack(true);
+      fetchEmployees(); // Refresh registry to reflect updated base salary and data
     } catch (err) {
-      setMessage('Archive error during processing');
+      const errorMsg = err.response?.data?.message || 'Archive error during processing';
+      setMessage(errorMsg);
       setShowSnack(true);
     } finally {
       setSaving(false);
@@ -159,7 +213,6 @@ export default function SalaryManagement() {
   };
 
   const handleGenerateSalary = async () => {
-    if (isAdmin) return;
     if (!selectedEmployeeForGen || !selectedMonth) {
       setMessage('Temporal and identity identifiers required');
       setShowSnack(true);
@@ -168,20 +221,93 @@ export default function SalaryManagement() {
 
     setGenerating(true);
     try {
-      await api.post('/salary/generate', {
+      const res = await api.post('/salary/generate', {
         employeeId: selectedEmployeeForGen,
         month: selectedMonth
       });
-      setMessage(`✓ Disbursement finalized for cycle ${selectedMonth}`);
+      setMessage(`✓ Disbursement finalized for ${res.data.salary?.employeeName || ' personnel'}`);
       setShowSnack(true);
       setOpenGenerateDialog(false);
       setSelectedEmployeeForGen('');
+      fetchSalaries(); // Refresh registry
     } catch (err) {
       setMessage(err.response?.data?.message || 'Calculation engine failure');
       setShowSnack(true);
     } finally {
       setGenerating(false);
     }
+  };
+
+  const handleDownload = async (employeeId) => {
+    try {
+      const payslips = await api.get(`/payslips/employee/${employeeId}`);
+      const currentPayslip = payslips.data.find(p => p.month === selectedMonth);
+      if (!currentPayslip) {
+        setMessage('No payslip archetyped for this cycle');
+        setShowSnack(true);
+        return;
+      }
+
+      // Fetch as blob to handle authorization correctly
+      const response = await api.get(`/payslips/${currentPayslip._id}/download`, {
+        responseType: 'blob'
+      });
+
+      const file = new Blob([response.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL);
+
+      setMessage('✓ Payslip archetyped and decrypted for viewing');
+      setShowSnack(true);
+    } catch (err) {
+      setMessage('Retrieval error during download');
+      setShowSnack(true);
+    }
+  };
+
+  const handleEmail = async (employeeId) => {
+    try {
+      const emp = employees.find(e => e._id === employeeId);
+      const payslips = await api.get(`/payslips/employee/${employeeId}`);
+      const currentPayslip = payslips.data.find(p => p.month === selectedMonth);
+
+      if (!currentPayslip) {
+        setMessage('Process salary before attempting transmission');
+        setShowSnack(true);
+        return;
+      }
+
+      try {
+        await api.post(`/payslips/${currentPayslip._id}/send-email`);
+        setMessage('✓ Digital transmission successful');
+        setShowSnack(true);
+      } catch (err) {
+        // Fallback to mailto link if backend SMTP fails
+        if (emp && emp.email) {
+          const portalUrl = `${window.location.origin}/employee/payslips`;
+          const subject = `Notification: Payslip for ${selectedMonth} is Available`;
+          const body = `Hello ${emp.name},\n\nYour payslip for the month of ${selectedMonth} has been finalized and is now available in the employee portal.\n\nPlease log in to view and download your payslip: ${portalUrl}\n\nSecurity Note: You will be required to authenticate with your credentials to access the document.\n\nBest regards,\nPayroll Department`;
+          const mailto = `mailto:${emp.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          window.location.href = mailto;
+          setMessage('SMTP failed, opening local mail client');
+          setShowSnack(true);
+        } else {
+          throw new Error('SMTP failed and no employee email found for fallback');
+        }
+      }
+    } catch (err) {
+      console.error('Email error:', err);
+      setMessage(err.message || 'SMTP transmission failure');
+      setShowSnack(true);
+    }
+  };
+
+  const getSalaryStatus = (empId) => {
+    return salaries.find(s => {
+      if (!s.employee) return false;
+      const id = typeof s.employee === 'object' ? s.employee._id : s.employee;
+      return id === empId && s.month === selectedMonth;
+    });
   };
 
   return (
@@ -195,7 +321,7 @@ export default function SalaryManagement() {
             </IconButton>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 800, color: '#1A202C', lineHeight: 1.2 }}>Financial Operations</Typography>
-              <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>{isAdmin ? 'AUDIT PROTOCOL | READ-ONLY LEDGER' : 'DISBURSEMENT MODULE | LEDGER MANAGEMENT'}</Typography>
+              <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>DISBURSEMENT MODULE | LEDGER MANAGEMENT</Typography>
             </Box>
           </Stack>
         </Container>
@@ -213,8 +339,8 @@ export default function SalaryManagement() {
               '& .MuiTabs-indicator': { bgcolor: '#1A202C', height: 2 }
             }}
           >
-            <Tab label={isAdmin ? "Audit Framework" : "Configured Structures"} icon={<Calculate sx={{ fontSize: 18 }} />} iconPosition="start" />
-            {!isAdmin && <Tab label="Disbursement Engine" icon={<PriceCheck sx={{ fontSize: 18 }} />} iconPosition="start" />}
+            <Tab label="Financial Structures" icon={<Calculate sx={{ fontSize: 18 }} />} iconPosition="start" />
+            <Tab label="Disbursement Engine" icon={<PriceCheck sx={{ fontSize: 18 }} />} iconPosition="start" />
           </Tabs>
 
           <Divider />
@@ -237,42 +363,31 @@ export default function SalaryManagement() {
                       </FormControl>
                     </Box>
 
-                    {isAdmin && (
-                      <Box sx={{ p: 2, bgcolor: '#FFF5F5', borderRadius: '8px', border: '1px solid #FED7D7', mb: 2 }}>
-                        <Typography variant="caption" sx={{ color: '#C53030', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <InfoOutlined sx={{ fontSize: 14 }} /> ADMINISTRATIVE RESTRICTION
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: '#9B2C2C', display: 'block', mt: 0.5 }}>
-                          You are currently in **Audit Mode**. Technical structures can only be modified by the **Superior Personnel** level.
-                        </Typography>
-                      </Box>
-                    )}
+                    {/* removed administrative restriction notice */}
 
                     <Grid container spacing={3}>
                       <Grid item xs={12} md={6}>
-                        <TextField fullWidth label="Base Operating Salary" type="number" value={form.baseSalary} onChange={handleChange('baseSalary')} disabled={isAdmin} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }} />
+                        <TextField fullWidth label="Base Operating Salary" type="number" value={form.baseSalary} onChange={handleChange('baseSalary')} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }} />
                       </Grid>
                       <Grid item xs={12} md={6} sx={{ display: 'flex', alignItems: 'center' }}>
                         <Typography variant="subtitle2" sx={{ color: '#3182CE', fontWeight: 800 }}>Total Calculated Gross: ₹{gross.toLocaleString()}</Typography>
                       </Grid>
 
                       <Grid item xs={12}><Divider><Chip label="ALLOWANCE ALLOCATION" size="small" sx={{ fontWeight: 900, fontSize: '0.65rem' }} /></Divider></Grid>
-                      <Grid item xs={12} sm={3}><TextField fullWidth label="HRA" type="number" value={form.hra} onChange={handleChange('hra')} disabled={isAdmin} /></Grid>
-                      <Grid item xs={12} sm={3}><TextField fullWidth label="DA" type="number" value={form.da} onChange={handleChange('da')} disabled={isAdmin} /></Grid>
-                      <Grid item xs={12} sm={3}><TextField fullWidth label="Travel" type="number" value={form.travel} onChange={handleChange('travel')} disabled={isAdmin} /></Grid>
-                      <Grid item xs={12} sm={3}><TextField fullWidth label="Medical" type="number" value={form.medical} onChange={handleChange('medical')} disabled={isAdmin} /></Grid>
+                      <Grid item xs={12} sm={3}><TextField fullWidth label="HRA" type="number" value={form.hra} onChange={handleChange('hra')} /></Grid>
+                      <Grid item xs={12} sm={3}><TextField fullWidth label="DA" type="number" value={form.da} onChange={handleChange('da')} /></Grid>
+                      <Grid item xs={12} sm={3}><TextField fullWidth label="Travel" type="number" value={form.travel} onChange={handleChange('travel')} /></Grid>
+                      <Grid item xs={12} sm={3}><TextField fullWidth label="Medical" type="number" value={form.medical} onChange={handleChange('medical')} /></Grid>
 
                       <Grid item xs={12}><Divider><Chip label="SYSTEM DEDUCTIONS" size="small" sx={{ fontWeight: 900, fontSize: '0.65rem' }} /></Divider></Grid>
-                      <Grid item xs={12} sm={4}><TextField fullWidth label="PF Contribution" type="number" value={form.pf} onChange={handleChange('pf')} disabled={isAdmin} /></Grid>
-                      <Grid item xs={12} sm={4}><TextField fullWidth label="Govt Tax" type="number" value={form.tax} onChange={handleChange('tax')} disabled={isAdmin} /></Grid>
-                      <Grid item xs={12} sm={4}><TextField fullWidth label="Insurance" type="number" value={form.insurance} onChange={handleChange('insurance')} disabled={isAdmin} /></Grid>
+                      <Grid item xs={12} sm={4}><TextField fullWidth label="PF Contribution" type="number" value={form.pf} onChange={handleChange('pf')} /></Grid>
+                      <Grid item xs={12} sm={4}><TextField fullWidth label="Govt Tax" type="number" value={form.tax} onChange={handleChange('tax')} /></Grid>
+                      <Grid item xs={12} sm={4}><TextField fullWidth label="Insurance" type="number" value={form.insurance} onChange={handleChange('insurance')} /></Grid>
                     </Grid>
 
-                    {!isAdmin && (
-                      <Button fullWidth variant="contained" onClick={handleSave} disabled={saving} sx={{ bgcolor: '#1A202C', py: 2, fontWeight: 800, borderRadius: '8px', '&:hover': { bgcolor: '#2D3748' } }}>
-                        {saving ? <CircularProgress size={24} color="inherit" /> : 'Commit Financial Structure'}
-                      </Button>
-                    )}
+                    <Button fullWidth variant="contained" onClick={handleSave} disabled={saving} sx={{ bgcolor: '#1A202C', py: 2, fontWeight: 800, borderRadius: '8px', '&:hover': { bgcolor: '#2D3748' } }}>
+                      {saving ? <CircularProgress size={24} color="inherit" /> : 'Commit Financial Structure'}
+                    </Button>
                   </Stack>
                 </Grid>
 
@@ -340,37 +455,183 @@ export default function SalaryManagement() {
             </TabPanel>
 
             <TabPanel value={tabValue} index={1}>
-              <Box sx={{ maxWidth: '640px', mx: 'auto', textAlign: 'center', py: 6 }}>
-                <Inventory sx={{ fontSize: 72, color: '#E2E8F0', mb: 3 }} />
-                <Typography variant="h5" sx={{ fontWeight: 900, color: '#1A202C', mb: 1.5, letterSpacing: -0.5 }}>Disbursement Control Engine</Typography>
-                <Typography variant="body2" sx={{ color: '#718096', mb: 6, fontWeight: 500 }}>Initialize the monthly financial cycle and process high-integrity settlements across the authenticated workforce registry.</Typography>
+              <Grid container spacing={4}>
+                {/* GENERATION CONTROLS */}
+                <Grid item xs={12} lg={4}>
+                  <Paper sx={{ p: 4, borderRadius: '16px', border: '1px solid #E2E8F0', textAlign: 'left', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', position: 'sticky', top: 20 }}>
+                    <Stack spacing={3}>
+                      <Box sx={{ textAlign: 'center', mb: 1 }}>
+                        <Inventory sx={{ fontSize: 48, color: '#1A202C', mb: 1 }} />
+                        <Typography variant="h6" sx={{ fontWeight: 900, color: '#1A202C' }}>Generation Engine</Typography>
+                        <Typography variant="caption" sx={{ color: '#718096', fontWeight: 500 }}>Initialize fiscal cycles & batch settlements.</Typography>
+                      </Box>
 
-                <Paper sx={{ p: 5, borderRadius: '16px', border: '1px solid #E2E8F0', textAlign: 'left', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-                  <Stack spacing={4}>
-                    <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}>
-                      <InputLabel>Personnel Execution Mapping</InputLabel>
-                      <Select value={selectedEmployeeForGen} label="Personnel Execution Mapping" onChange={(e) => setSelectedEmployeeForGen(e.target.value)}>
-                        {employees.map((emp) => (<MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>))}
-                      </Select>
-                    </FormControl>
+                      <TextField
+                        fullWidth
+                        label="Active Cycle"
+                        type="month"
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(e.target.value)}
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                      />
 
-                    <TextField fullWidth label="Audit Cycle Identifier (Month)" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={generating ? <CircularProgress size={18} /> : <DoneAll />}
+                        onClick={async () => {
+                          if (!window.confirm(`Process full workforce disbursement for ${selectedMonth}?`)) return;
+                          setGenerating(true);
+                          try {
+                            await api.post('/salary/generate-all', { month: selectedMonth });
+                            setMessage(`✓ Batch processing complete for ${selectedMonth}`);
+                            setShowSnack(true);
+                            fetchSalaries();
+                          } catch (err) {
+                            setMessage('Batch processing failure');
+                            setShowSnack(true);
+                          } finally {
+                            setGenerating(false);
+                          }
+                        }}
+                        sx={{ py: 1.5, fontWeight: 800, borderRadius: '10px', textTransform: 'none', borderStyle: 'dashed', borderWidth: 2 }}
+                      >
+                        Authorize Batch Process
+                      </Button>
 
-                    <Box sx={{ p: 2.5, bgcolor: '#ebf8ff', borderRadius: '10px', border: '1px solid #bee3f8' }}>
-                      <Typography variant="caption" sx={{ color: '#2b6cb0', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 1, textTransform: 'uppercase' }}>
-                        <InfoOutlined sx={{ fontSize: 16 }} /> Processing Logic Trace
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: '#2c5282', display: 'block', mt: 1.5, lineHeight: 1.6, fontWeight: 500 }}>
-                        Triggering this engine will aggregate verified attendance, calculate leave-adjusted deductions, and deduct prioritized EMI installments for the specified temporal cycle.
-                      </Typography>
+                      <Divider><Typography variant="caption" sx={{ color: '#A0AEC0', fontWeight: 800 }}>OR SELECT INDIVIDUAL</Typography></Divider>
+
+                      <FormControl fullWidth sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}>
+                        <InputLabel>Personnel Mapping</InputLabel>
+                        <Select value={selectedEmployeeForGen} label="Personnel Mapping" onChange={(e) => setSelectedEmployeeForGen(e.target.value)}>
+                          {employees.map((emp) => (<MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>))}
+                        </Select>
+                      </FormControl>
+
+                      <Button
+                        fullWidth
+                        variant="contained"
+                        onClick={() => setOpenGenerateDialog(true)}
+                        disabled={!selectedEmployeeForGen}
+                        sx={{ bgcolor: '#1A202C', py: 2, fontWeight: 900, borderRadius: '10px', textTransform: 'none', '&:hover': { bgcolor: '#2D3748' } }}
+                      >
+                        Finalize Specific Ledger
+                      </Button>
+
+                      <Box sx={{ p: 2, bgcolor: '#ebf8ff', borderRadius: '10px', border: '1px solid #bee3f8' }}>
+                        <Typography variant="caption" sx={{ color: '#2b6cb0', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <InfoOutlined sx={{ fontSize: 14 }} /> INTEGRITY TRACE
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#2c5282', display: 'block', mt: 1, lineHeight: 1.5, fontWeight: 500 }}>
+                          Finalization aggregates attendance & loan EMIs into immutable entries.
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Paper>
+                </Grid>
+
+                {/* REGISTRY / HISTORY */}
+                <Grid item xs={12} lg={8}>
+                  <Paper sx={{ borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: 'none' }}>
+                    <Box sx={{ p: 3, borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#F8FAFC' }}>
+                      <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#1A202C' }}>Payroll Registry - {selectedMonth}</Typography>
+                        <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>MONITORING REAL-TIME DISBURSEMENT STATUS</Typography>
+                      </Box>
+                      <TextField
+                        size="small"
+                        placeholder="Search personnel..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        InputProps={{ startAdornment: <Search sx={{ color: '#94a3b8', mr: 1, fontSize: 18 }} /> }}
+                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: 'white', width: '240px' } }}
+                      />
                     </Box>
 
-                    <Button fullWidth variant="contained" onClick={() => setOpenGenerateDialog(true)} sx={{ bgcolor: '#1A202C', py: 2.5, fontWeight: 900, borderRadius: '10px', textTransform: 'none', fontSize: '1rem', '&:hover': { bgcolor: '#2D3748' } }}>
-                      Initialize Full Disbursement Cycle
-                    </Button>
-                  </Stack>
-                </Paper>
-              </Box>
+                    <TableContainer>
+                      <Table sx={{ minWidth: 650 }}>
+                        <TableHead>
+                          <TableRow sx={{ bgcolor: '#F8FAFC' }}>
+                            <TableCell sx={{ fontWeight: 800, color: '#4A5568', textTransform: 'uppercase', fontSize: '0.7rem' }}>Personnel</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#4A5568', textTransform: 'uppercase', fontSize: '0.7rem' }}>Base Salary</TableCell>
+                            <TableCell sx={{ fontWeight: 800, color: '#4A5568', textTransform: 'uppercase', fontSize: '0.7rem' }}>Cycle Status</TableCell>
+                            <TableCell align="right" sx={{ fontWeight: 800, color: '#4A5568', textTransform: 'uppercase', fontSize: '0.7rem' }}>Operational Actions</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {employees.filter(e => e.name.toLowerCase().includes(searchTerm.toLowerCase())).map((emp) => {
+                            const salary = getSalaryStatus(emp._id);
+                            return (
+                              <TableRow key={emp._id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
+                                <TableCell>
+                                  <Stack direction="row" spacing={2} alignItems="center">
+                                    <Avatar sx={{ width: 32, height: 32, fontSize: '0.9rem', bgcolor: '#E2E8F0', color: '#1A202C', fontWeight: 700 }}>{emp.name[0]}</Avatar>
+                                    <Box>
+                                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#1A202C' }}>{emp.name}</Typography>
+                                      <Stack direction="row" spacing={1} alignItems="center">
+                                        <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>{emp.department}</Typography>
+                                        <Chip label="Superior" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 800, borderColor: '#3182CE', color: '#3182CE' }} />
+                                      </Stack>
+                                    </Box>
+                                  </Stack>
+                                </TableCell>
+                                <TableCell>
+                                  <Typography variant="body2" sx={{ fontWeight: 700, color: '#2D3748' }}>₹{emp.baseSalary?.toLocaleString()}</Typography>
+                                </TableCell>
+                                <TableCell>
+                                  {salary ? (
+                                    <Chip label="FINALIZED" size="small" sx={{ bgcolor: '#C6F6D5', color: '#22543D', fontWeight: 900, fontSize: '0.6rem' }} />
+                                  ) : (
+                                    <Chip label="PENDING" size="small" sx={{ bgcolor: '#EDF2F7', color: '#4A5568', fontWeight: 900, fontSize: '0.6rem' }} />
+                                  )}
+                                </TableCell>
+                                <TableCell align="right">
+                                  {salary ? (
+                                    <Stack direction="row" spacing={1} justifyContent="flex-end" alignItems="center">
+                                      <Tooltip title="Download PDF Ledger">
+                                        <IconButton size="small" onClick={() => handleDownload(emp._id)} sx={{ color: '#2C5282' }}><FileDownload sx={{ fontSize: 18 }} /></IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="Transmit via Enterprise Mail">
+                                        <IconButton size="small" onClick={() => handleEmail(emp._id)} sx={{ color: '#10B981' }}><Mail sx={{ fontSize: 18 }} /></IconButton>
+                                      </Tooltip>
+                                      <Tooltip title="Re-calculate & Update Ledger">
+                                        <IconButton size="small" onClick={() => {
+                                          setSelectedEmployeeForGen(emp._id);
+                                          setOpenGenerateDialog(true);
+                                        }} sx={{ color: '#F6AD55' }}><Calculate sx={{ fontSize: 18 }} /></IconButton>
+                                      </Tooltip>
+                                      <CheckCircle sx={{ color: '#38A169', fontSize: 18 }} />
+                                    </Stack>
+                                  ) : (
+                                    <Button
+                                      size="small"
+                                      variant="contained"
+                                      onClick={() => {
+                                        setSelectedEmployeeForGen(emp._id);
+                                        setOpenGenerateDialog(true);
+                                      }}
+                                      sx={{ bgcolor: '#1A202C', fontWeight: 800, textTransform: 'none', borderRadius: '6px', px: 2, '&:hover': { bgcolor: '#2D3748' } }}
+                                    >
+                                      Finalize Ledger
+                                    </Button>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                    {employees.length === 0 && (
+                      <Box sx={{ p: 6, textAlign: 'center' }}>
+                        <Inventory sx={{ fontSize: 48, color: '#E2E8F0', mb: 2 }} />
+                        <Typography variant="body2" sx={{ color: '#A0AEC0', fontWeight: 600 }}>No personnel records found in database.</Typography>
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+              </Grid>
             </TabPanel>
           </Box>
         </Paper>
@@ -381,7 +642,7 @@ export default function SalaryManagement() {
         <DialogTitle sx={{ fontWeight: 900, color: '#1A202C', pt: 3 }}>Security & Integrity Confirm</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ color: '#4A5568', lineHeight: 1.6 }}>
-            Confirming this action will finalize the financial disbursement for cycle **{selectedMonth}**. This will trigger immutable ledger entries for the specified personnel mapping.
+            Confirming this action will finalize or update the financial disbursement for cycle **{selectedMonth}**. This will refresh the ledger based on current attendance, loans, and salary structure.
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 4, pt: 2 }}>
@@ -393,7 +654,7 @@ export default function SalaryManagement() {
       </Dialog>
 
       <Snackbar open={showSnack} autoHideDuration={4000} onClose={() => setShowSnack(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-        <MuiAlert severity={message.includes('✓') ? 'success' : 'error'} variant="filled" sx={{ borderRadius: '6px', fontWeight: 700 }}>{message}</MuiAlert>
+        <MuiAlert severity={message.includes('success') || message.includes('successfully') || message.includes('complete') || message.includes('secured') ? 'success' : message.includes('local mail') ? 'info' : 'error'} variant="filled" sx={{ borderRadius: '4px' }}>{message}</MuiAlert>
       </Snackbar>
     </Box>
   );

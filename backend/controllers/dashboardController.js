@@ -9,6 +9,7 @@ exports.getDashboardStats = async (req, res) => {
         const totalEmployees = await Employee.countDocuments({ role: { $ne: 'admin' } });
         const maleCount = await Employee.countDocuments({ role: { $ne: 'admin' }, gender: 'male' });
         const femaleCount = await Employee.countDocuments({ role: { $ne: 'admin' }, gender: 'female' });
+        const superiorCount = await Employee.countDocuments({ role: 'superior' });
 
         // 2. Attendance Stats (Today)
         const today = new Date();
@@ -36,14 +37,15 @@ exports.getDashboardStats = async (req, res) => {
         });
 
         // 3. Requests Stats
-        const totalLeaveRequests = await Leave.countDocuments();
-        const totalLoanRequests = await Loan.countDocuments();
+        const totalLeaveRequests = await Leave.countDocuments({ status: 'pending' });
+        const totalLoanRequests = await Loan.countDocuments({ status: 'pending' });
 
         res.json({
             employees: {
                 total: totalEmployees,
                 male: maleCount,
-                female: femaleCount
+                female: femaleCount,
+                superior: superiorCount
             },
             attendance,
             requests: {
