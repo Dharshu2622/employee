@@ -36,6 +36,7 @@ import {
     ArrowBack,
     Edit,
     Delete,
+    PersonAdd,
     Male,
     Female,
     Transgender,

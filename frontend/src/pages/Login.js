@@ -91,7 +91,7 @@ export default function Login() {
     try {
       const response = await api.post('/auth/login', { email, password });
       dispatch(loginSuccess(response.data));
-      setMessage('Authenticated successfully');
+      setMessage('Login Successful. Redirecting...');
       setSeverity('success');
       setShowSnack(true);
 

@@ -23,7 +23,7 @@ import {
     TextField,
     Chip
 } from '@mui/material';
-import { Save, CheckCircle, Groups, History, Info, HighlightOff } from '@mui/icons-material';
+import { Save, CheckCircle, Groups, History, Info, CalendarMonth, HighlightOff } from '@mui/icons-material';
 import api from '../api';
 
 export default function SuperiorAttendance() {

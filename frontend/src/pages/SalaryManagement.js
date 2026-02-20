@@ -47,7 +47,7 @@ import {
   PriceCheck,
   AccountBalanceWallet,
   InfoOutlined,
-  DoneAll
+  DoneAll,
 } from '@mui/icons-material';
 import api from '../api';
 
@@ -132,7 +132,6 @@ export default function SalaryManagement() {
           insurance: data.deductions?.insurance || (b > 0 ? 500 : 0),
           loanEMI: data.deductions?.loanEMI || 0
         });
-        // We can also store the EMI and LOP if we want to show them in the UI
       } else {
         // Fallback to basic structure if preview fails (e.g. month-specific record issues)
         const salRes = await api.get(`/salary/structure/${id}`).catch(() => null);
@@ -270,7 +269,6 @@ export default function SalaryManagement() {
         employeeId: employeeId,
         month: selectedMonth
       }).catch(err => console.error('Silent sync failed:', err));
-
       const payslips = await api.get(`/payslips/employee/${employeeId}`);
       const currentPayslip = payslips.data.find(p => p.month === selectedMonth);
       if (!currentPayslip) {

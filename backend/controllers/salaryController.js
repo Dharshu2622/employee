@@ -65,7 +65,6 @@ exports.getSalaryStructure = async (req, res) => {
     // Otherwise return defaults based on settings
     const settings = await Settings.findOne() || { payroll: { hraPercent: 20, professionalTax: 200, pfEmployerPercent: 12 } };
     const base = employee.baseSalary || 0;
-
     res.json({
       baseSalary: base,
       allowances: {
@@ -138,7 +137,6 @@ const calculateSalaryDetails = async (employeeId, month) => {
   // 5. Advanced Leave / LOP Calculation
   let lopDays = 0;
   lopDays += halfDayCount * 0.5;
-
   for (const record of attendanceRecords) {
     if (record.status === 'leave' || record.status === 'absent') {
       const isPaidLeave = approvedLeaves.some(l =>

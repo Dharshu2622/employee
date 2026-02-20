@@ -65,7 +65,7 @@ export default function SuperiorPayroll() {
     const [employees, setEmployees] = useState([]);
     const [selectedEmployee, setSelectedEmployee] = useState('');
     const [employeeLoans, setEmployeeLoans] = useState([]);
-    const [form, setForm] = useState({ baseSalary: 0, hra: 0, da: 0, travel: 0, medical: 0, pf: 0, tax: 0, insurance: 0 });
+    const [form, setForm] = useState({ baseSalary: 0, hra: 0, da: 0, travel: 0, medical: 0, pf: 0, tax: 0, insurance: 0, loanEMI: 0 });
     const [message, setMessage] = useState('');
     const [showSnack, setShowSnack] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -140,13 +140,13 @@ export default function SuperiorPayroll() {
                         hra: salRes.data.allowances?.hra || (b > 0 ? Math.round(b * 0.20) : 0),
                         da: salRes.data.allowances?.da || (b > 0 ? Math.round(b * 0.10) : 0),
                         travel: salRes.data.allowances?.travel || (b > 0 ? 1500 : 0),
+                        medical: salRes.data.allowances?.medical || (b > 0 ? 1250 : 0),
                         pf: salRes.data.deductions?.pf || (b > 0 ? Math.round(b * 0.12) : 0),
                         tax: salRes.data.deductions?.tax || (b > 0 ? Math.round(b * 0.05) : 0),
                         insurance: salRes.data.deductions?.insurance || (b > 0 ? 500 : 0),
-                        loanEMI: 0 // Initialize loanEMI to 0 if no preview data
+                        loanEMI: 0
                     });
                 } else {
-                    // Reset form if no data found
                     setForm({ baseSalary: 0, hra: 0, da: 0, travel: 0, medical: 0, pf: 0, tax: 0, insurance: 0, loanEMI: 0 });
                 }
             }
@@ -159,8 +159,8 @@ export default function SuperiorPayroll() {
                 const remaining = (loan.amount || 0) - (loan.paidAmount || 0);
                 return sum + Math.min(loan.monthlyEMI || 0, remaining);
             }, 0);
-            setEmployeeLoans(loansArray); // Keep employeeLoans state for loan monitor
-            setForm(prev => ({ ...prev, loanEMI: totalEMI })); // Update loanEMI in form state
+            setEmployeeLoans(loansArray);
+            setForm(prev => ({ ...prev, loanEMI: totalEMI }));
         } catch (err) {
             console.error('Error fetching employee financials:', err);
         }
@@ -176,8 +176,6 @@ export default function SuperiorPayroll() {
         const value = Number(e.target.value || 0);
         setForm(prev => {
             const newForm = { ...prev, [key]: value };
-
-            // Auto-calculate for employees when base salary changes
             if (key === 'baseSalary') {
                 newForm.hra = Math.round(value * 0.20);
                 newForm.da = Math.round(value * 0.10);
@@ -195,8 +193,6 @@ export default function SuperiorPayroll() {
     const totalLoanAmount = activeLoans.reduce((sum, l) => sum + (l.amount || 0), 0);
     const deductedLoanAmount = activeLoans.reduce((sum, l) => sum + (l.paidAmount || 0), 0);
     const remainingLoanBalance = totalLoanAmount - deductedLoanAmount;
-
-    // currentMonthEMI is now derived from form.loanEMI, which is set by fetchEmployeeData
     const currentMonthEMI = form.loanEMI;
 
     const gross = form.baseSalary + form.hra + form.da + form.travel + form.medical;
@@ -326,7 +322,6 @@ export default function SuperiorPayroll() {
 
     return (
         <Box sx={{ bgcolor: '#F7FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-            {/* HEADER */}
             <Box sx={{ p: 2, bgcolor: 'white', borderBottom: '1px solid #E2E8F0', minHeight: '64px' }}>
                 <Container maxWidth="xl">
                     <Stack direction="row" spacing={2} alignItems="center">
@@ -362,7 +357,6 @@ export default function SuperiorPayroll() {
                     <Box sx={{ p: 4 }}>
                         <TabPanel value={tabValue} index={0}>
                             <Grid container spacing={4}>
-                                {/* CONFIGURATION FORM */}
                                 <Grid item xs={12} lg={8}>
                                     <Stack spacing={4}>
                                         <Box sx={{ p: 3, bgcolor: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
@@ -412,7 +406,6 @@ export default function SuperiorPayroll() {
                                     </Stack>
                                 </Grid>
 
-                                {/* FINANCIAL SNAPSHOT */}
                                 <Grid item xs={12} lg={4}>
                                     <Stack spacing={3}>
                                         <Paper sx={{ p: 4, borderRadius: '16px', bgcolor: '#1A202C', color: 'white', position: 'relative', overflow: 'hidden' }}>
@@ -426,22 +419,19 @@ export default function SuperiorPayroll() {
                                                     </Box>
                                                     <Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
                                                     <Box>
-                                                        <Box>
-                                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.5, fontWeight: 800 }}>RETAINED</Typography>
-                                                            <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#FC8181' }}>₹{totalDeductions.toLocaleString()}</Typography>
-                                                            {currentMonthEMI > 0 && (
-                                                                <Typography variant="caption" sx={{ display: 'block', opacity: 0.7, color: '#FC8181', fontSize: '10px' }}>
-                                                                    (Includes EMI: ₹{currentMonthEMI.toLocaleString()})
-                                                                </Typography>
-                                                            )}
-                                                        </Box>
+                                                        <Typography variant="caption" sx={{ display: 'block', opacity: 0.5, fontWeight: 800 }}>RETAINED</Typography>
+                                                        <Typography variant="subtitle1" sx={{ fontWeight: 900, color: '#FC8181' }}>₹{totalDeductions.toLocaleString()}</Typography>
+                                                        {currentMonthEMI > 0 && (
+                                                            <Typography variant="caption" sx={{ display: 'block', opacity: 0.7, color: '#FC8181', fontSize: '10px' }}>
+                                                                (Includes EMI: ₹{currentMonthEMI.toLocaleString()})
+                                                            </Typography>
+                                                        )}
                                                     </Box>
                                                 </Stack>
                                             </Box>
                                             <AccountBalanceWallet sx={{ position: 'absolute', right: -30, bottom: -30, fontSize: 160, opacity: 0.03, transform: 'rotate(-15deg)' }} />
                                         </Paper>
 
-                                        {/* LOAN MONITOR */}
                                         <Box sx={{ p: 3, borderRadius: '16px', bgcolor: 'white', border: '1px solid #E2E8F0' }}>
                                             <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#1A202C' }}>
                                                 <span>Personnel Liability Audit</span>
@@ -484,7 +474,6 @@ export default function SuperiorPayroll() {
 
                         <TabPanel value={tabValue} index={1}>
                             <Grid container spacing={4}>
-                                {/* GENERATION CONTROLS */}
                                 <Grid item xs={12} lg={4}>
                                     <Paper sx={{ p: 4, borderRadius: '16px', border: '1px solid #E2E8F0', position: 'sticky', top: 20 }}>
                                         <Stack spacing={3}>
@@ -494,24 +483,23 @@ export default function SuperiorPayroll() {
                                             </Box>
                                             <TextField fullWidth label="Active Cycle" type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} InputLabelProps={{ shrink: true }} />
                                             <Button fullWidth variant="outlined" startIcon={<DoneAll />} onClick={async () => {
-                                                if (!window.confirm(`Process batch for ${selectedMonth}?`)) return;
+                                                if (!window.confirm(`Process full workforce disbursement for ${selectedMonth}?`)) return;
                                                 setGenerating(true);
                                                 try {
                                                     await api.post('/salary/generate-all', { month: selectedMonth });
-                                                    setMessage('✓ Batch complete');
+                                                    setMessage('✓ Batch processing complete');
                                                     setShowSnack(true);
                                                     fetchSalaries();
                                                 } catch (err) { setMessage('Batch failure'); setShowSnack(true); }
                                                 finally { setGenerating(false); }
-                                            }} sx={{ py: 1.5, fontWeight: 800, borderStyle: 'dashed' }}>Authorize Batch</Button>
+                                            }} sx={{ py: 1.5, fontWeight: 800, borderStyle: 'dashed' }}>Authorize Batch Process</Button>
                                             <Divider><Typography variant="caption" sx={{ color: '#A0AEC0' }}>OR SELECT INDIVIDUAL</Typography></Divider>
                                             <FormControl fullWidth><InputLabel>Mapping</InputLabel><Select value={selectedEmployeeForGen} label="Mapping" onChange={(e) => setSelectedEmployeeForGen(e.target.value)}>{employees.map((emp) => (<MenuItem key={emp._id} value={emp._id}>{emp.name}</MenuItem>))}</Select></FormControl>
-                                            <Button fullWidth variant="contained" onClick={() => setOpenGenerateDialog(true)} disabled={!selectedEmployeeForGen} sx={{ bgcolor: '#1A202C', py: 2, fontWeight: 900 }}>Finalize Ledger</Button>
+                                            <Button fullWidth variant="contained" onClick={() => setOpenGenerateDialog(true)} disabled={!selectedEmployeeForGen} sx={{ bgcolor: '#1A202C', py: 2, fontWeight: 900 }}>Finalize Specific Ledger</Button>
                                         </Stack>
                                     </Paper>
                                 </Grid>
 
-                                {/* REGISTRY */}
                                 <Grid item xs={12} lg={8}>
                                     <Paper sx={{ borderRadius: '16px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
                                         <Box sx={{ p: 3, borderBottom: '1px solid #F1F5F9', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#F8FAFC' }}>
@@ -566,7 +554,6 @@ export default function SuperiorPayroll() {
                 </Paper>
             </Container>
 
-            {/* DIALOG */}
             <Dialog open={openGenerateDialog} onClose={() => setOpenGenerateDialog(false)} maxWidth="xs" fullWidth>
                 <DialogTitle sx={{ fontWeight: 900 }}>Confirm Disbursement</DialogTitle>
                 <DialogContent><Typography variant="body2">Authorize the financial cycle archive for **{selectedMonth}**?</Typography></DialogContent>
