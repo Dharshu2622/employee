@@ -35,7 +35,7 @@ import {
   SettingsOutlined,
   AccountBalanceOutlined,
   LogoutOutlined,
-  NotificationsNoneOutlined
+  SupervisorAccountOutlined
 } from '@mui/icons-material';
 import api from '../api';
 import { logout } from '../redux/authSlice';
@@ -43,6 +43,7 @@ import { logout } from '../redux/authSlice';
 const NAV_ITEMS = [
   { label: 'Overview', icon: SpaceDashboardOutlined, path: '/admin/dashboard', category: 'MAIN' },
   { label: 'Employees', icon: PeopleOutlined, path: '/admin/employees', category: 'MAIN' },
+  { label: 'Superiors', icon: SupervisorAccountOutlined, path: '/admin/superiors', category: 'MAIN' },
   { label: 'Payroll', icon: MonetizationOnOutlined, path: '/admin/salary', category: 'MAIN' },
   { label: 'Attendance', icon: AssessmentOutlined, path: '/admin/attendance', category: 'REPORTING' },
   { label: 'Leaves & Requests', icon: WorkOutline, path: '/admin/requests', category: 'REPORTING' },
@@ -51,7 +52,7 @@ const NAV_ITEMS = [
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
-    employees: { total: 0, male: 0, female: 0 },
+    employees: { total: 0, male: 0, female: 0, superior: 0 },
     attendance: { present: 0, absent: 0, leave: 0, halfDay: 0, official_leave: 0 },
     requests: { leaves: 0, loans: 0 }
   });
@@ -233,14 +234,17 @@ export default function AdminDashboard() {
           {/* Employee Summary Section */}
           <Typography variant="h6" sx={{ mb: 3, fontWeight: 700, color: '#334155' }}>Employee Summary</Typography>
           <Grid container spacing={3} sx={{ mb: 6 }}>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <SummaryCard title="Total Employees" count={stats.employees.total} icon={PeopleOutlined} color="#2563EB" bgColor="#EFF6FF" />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <SummaryCard title="Male Employees" count={stats.employees.male} icon={MaleOutlined} color="#0EA5E9" bgColor="#E0F2FE" />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <SummaryCard title="Female Employees" count={stats.employees.female} icon={FemaleOutlined} color="#EC4899" bgColor="#FCE7F3" />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <SummaryCard title="Superior Employees" count={stats.employees.superior} icon={SupervisorAccountOutlined} color="#7C3AED" bgColor="#EDE9FE" />
             </Grid>
           </Grid>
 
@@ -257,7 +261,7 @@ export default function AdminDashboard() {
               <SummaryCard title="Half Day" count={stats.attendance.halfDay} icon={HistoryOutlined} color="#F59E0B" bgColor="#FEF3C7" />
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
-              <SummaryCard title="Official Leave" count={stats.attendance.official_leave || stats.attendance.leave} icon={EventAvailableOutlined} color="#6366F1" bgColor="#E0E7FF" />
+              <SummaryCard title="Official Leave" count={(stats.attendance.official_leave || 0) + (stats.attendance.leave || 0)} icon={EventAvailableOutlined} color="#6366F1" bgColor="#E0E7FF" />
             </Grid>
           </Grid>
 

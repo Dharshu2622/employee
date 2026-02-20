@@ -8,7 +8,7 @@ const router = express.Router();
 router.post('/', auth, loanController.requestLoan);
 router.get('/all', auth, authorize.permitRoles('admin', 'superior'), loanController.getAllLoans);
 router.get('/employee/:employeeId', auth, authorize.allowSelfOrRoles('employeeId', 'admin', 'superior'), loanController.getLoansByEmployee);
-router.patch('/:id/approve', auth, authorize.permitRoles('superior'), loanController.approveLoan);
-router.patch('/:id/reject', auth, authorize.permitRoles('superior'), loanController.rejectLoan);
+router.patch('/:id/approve', auth, authorize.permitRoles('admin', 'superior'), loanController.approveLoan);
+router.patch('/:id/reject', auth, authorize.permitRoles('admin', 'superior'), loanController.rejectLoan);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import {
@@ -35,14 +35,17 @@ import {
   Stars,
   AdminPanelSettings,
   Shield,
+  ReportProblemOutlined,
+  CheckCircle,
+  AccountTreeOutlined,
+  VerifiedUser,
   Storage,
   Groups,
   Rule,
   Timeline,
   AccountBalanceWallet,
   AssignmentTurnedIn,
-  RequestQuote,
-  AccountTreeOutlined
+  RequestQuote
 } from '@mui/icons-material';
 import api from '../api';
 import { loginSuccess } from '../redux/authSlice';
@@ -133,7 +136,7 @@ export default function Login() {
       title: 'Global Administration',
       subtitle: 'System core management and infrastructure control.',
       points: [
-        { icon: <Storage sx={{ color: '#3182CE' }} />, title: 'Infrastructure Control', desc: 'Secure database management & scaling.' },
+        { icon: <Storage sx={{ color: '#3182CE' }} />, title: 'Infrastucture Control', desc: 'Secure database management & scaling.' },
         { icon: <Shield sx={{ color: '#3182CE' }} />, title: 'Access Auditing', desc: 'Full traceability of system-wide actions.' },
         { icon: <Rule sx={{ color: '#3182CE' }} />, title: 'Security Protocols', desc: 'Military-grade encryption standards.' }
       ]
@@ -143,7 +146,7 @@ export default function Login() {
       subtitle: 'Oversee departmental growth and team productivity.',
       points: [
         { icon: <Groups sx={{ color: '#3182CE' }} />, title: 'Team Oversight', desc: 'Manage assignments & performance.' },
-        { icon: <AssignmentTurnedIn sx={{ color: '#3182CE' }} />, title: 'Request Approval', desc: 'Streamlined validation workflow.' },
+        { icon: <AssignmentTurnedIn sx={{ color: '#3182CE' }} />, title: 'Reqest Approval', desc: 'Streamlined validation workflow.' },
         { icon: <Timeline sx={{ color: '#3182CE' }} />, title: 'Analytics Engine', desc: 'Visual representation of departmental stats.' }
       ]
     },
@@ -363,7 +366,7 @@ export default function Login() {
 
             <Box sx={{ mt: 'auto', textAlign: 'center', pt: 4 }}>
               <Typography variant="caption" sx={{ color: '#E2E8F0', fontSize: '0.7rem' }}>
-                © 2026 SalaryPro Ecosystem. All rights reserved.
+                ┬⌐ 2026 SalaryPro Ecosystem. All rights reserved.
               </Typography>
             </Box>
           </Stack>

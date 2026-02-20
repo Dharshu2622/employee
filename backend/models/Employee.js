@@ -16,6 +16,17 @@ const employeeSchema = new mongoose.Schema({
   address: { type: String },
   photo: { type: String },
   baseSalary: { type: Number, default: 0 },
+  allowances: {
+    hra: { type: Number, default: 0 },
+    da: { type: Number, default: 0 },
+    travel: { type: Number, default: 0 },
+    medical: { type: Number, default: 0 }
+  },
+  deductions: {
+    pf: { type: Number, default: 0 },
+    tax: { type: Number, default: 0 },
+    insurance: { type: Number, default: 0 }
+  },
   status: { type: String, enum: ['active', 'inactive', 'terminated'], default: 'active' },
 }, { timestamps: true });
 

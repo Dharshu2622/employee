@@ -1,0 +1,830 @@
+{
+  "info": {
+    "_postman_id": "employee-salary-system-2025",
+    "name": "Employee Salary Management System",
+    "description": "Complete API collection for Employee Salary Management System with authentication, employee management, attendance, salary, leaves, loans, and payslips",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345678"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@company.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/admin-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "admin-login"]
+            },
+            "description": "Login as Admin to get JWT token"
+          }
+        },
+        {
+          "name": "Employee Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@company.com\",\n  \"password\": \"employee123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/employee-login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "employee-login"]
+            },
+            "description": "Login as Employee to get JWT token"
+          }
+        },
+        {
+          "name": "Get Current User Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            },
+            "description": "Get current logged-in user information"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Employee Management",
+      "item": [
+        {
+          "name": "Get All Employees",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "employees"]
+            },
+            "description": "Retrieve list of all employees"
+          }
+        },
+        {
+          "name": "Get Employee by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/employees/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "employees", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get specific employee details by ID"
+          }
+        },
+        {
+          "name": "Create New Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Smith\",\n  \"email\": \"jane@company.com\",\n  \"password\": \"jane123\",\n  \"department\": \"HR\",\n  \"position\": \"HR Manager\",\n  \"salary\": 50000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "employees"]
+            },
+            "description": "Create a new employee record"
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Smith Updated\",\n  \"position\": \"Senior HR Manager\",\n  \"department\": \"HR\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/employees/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "employees", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Update employee information"
+          }
+        },
+        {
+          "name": "Delete Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/employees/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "employees", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Delete an employee record"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendance Management",
+      "item": [
+        {
+          "name": "Mark Attendance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"employee_id_here\",\n  \"date\": \"2025-11-26\",\n  \"status\": \"present\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/mark",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "mark"]
+            },
+            "description": "Mark employee attendance for a specific date"
+          }
+        },
+        {
+          "name": "Get All Attendance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance"]
+            },
+            "description": "Get attendance records for all employees"
+          }
+        },
+        {
+          "name": "Get Employee Attendance",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/employee/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "attendance", "employee", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get attendance records for specific employee"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Salary Management",
+      "item": [
+        {
+          "name": "Set Employee Salary",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"employee_id_here\",\n  \"baseSalary\": 50000,\n  \"allowances\": 10000,\n  \"deductions\": 5000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/salary/set",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "salary", "set"]
+            },
+            "description": "Set or update employee salary structure"
+          }
+        },
+        {
+          "name": "Get Salary by Employee ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/salary/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "salary", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get salary information for specific employee"
+          }
+        },
+        {
+          "name": "Get Salary History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/salary/history/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "salary", "history", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get salary history for specific employee"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leave Management",
+      "item": [
+        {
+          "name": "Request Leave",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"employee_id_here\",\n  \"type\": \"Sick Leave\",\n  \"startDate\": \"2025-12-01\",\n  \"endDate\": \"2025-12-03\",\n  \"reason\": \"Medical appointment\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/leaves/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "leaves", "request"]
+            },
+            "description": "Submit a new leave request"
+          }
+        },
+        {
+          "name": "Get All Leaves",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leaves",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "leaves"]
+            },
+            "description": "Get all leave requests"
+          }
+        },
+        {
+          "name": "Get Employee Leaves",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/leaves/employee/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "leaves", "employee", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get leave requests for specific employee"
+          }
+        },
+        {
+          "name": "Approve Leave",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/leaves/:id/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "leaves", ":id", "approve"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Approve a leave request"
+          }
+        },
+        {
+          "name": "Reject Leave",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\",\n  \"rejectionReason\": \"Business critical period\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/leaves/:id/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "leaves", ":id", "reject"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Reject a leave request"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Loan Management",
+      "item": [
+        {
+          "name": "Request Loan",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"employee_id_here\",\n  \"amount\": 100000,\n  \"months\": 12,\n  \"reason\": \"Home renovation\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/loans/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "loans", "request"]
+            },
+            "description": "Submit a new loan request with automatic EMI calculation"
+          }
+        },
+        {
+          "name": "Get All Loans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/loans",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "loans"]
+            },
+            "description": "Get all loan requests"
+          }
+        },
+        {
+          "name": "Get Employee Loans",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/loans/employee/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "loans", "employee", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get loan requests for specific employee"
+          }
+        },
+        {
+          "name": "Approve Loan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/loans/:id/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "loans", ":id", "approve"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Approve a loan request"
+          }
+        },
+        {
+          "name": "Reject Loan",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\",\n  \"rejectionReason\": \"Insufficient credit score\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/loans/:id/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "loans", ":id", "reject"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Reject a loan request"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Payslip Management",
+      "item": [
+        {
+          "name": "Generate Payslip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": \"employee_id_here\",\n  \"month\": \"November\",\n  \"year\": 2025\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payslips/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payslips", "generate"]
+            },
+            "description": "Generate a payslip for specific employee and month"
+          }
+        },
+        {
+          "name": "Get All Payslips",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payslips",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payslips"]
+            },
+            "description": "Get all payslips"
+          }
+        },
+        {
+          "name": "Get Employee Payslips",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payslips/employee/:id",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payslips", "employee", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Get payslips for specific employee"
+          }
+        },
+        {
+          "name": "Download Payslip PDF",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/payslips/:id/download",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payslips", ":id", "download"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Download payslip as PDF"
+          }
+        },
+        {
+          "name": "Email Payslip",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payslipId\": \"payslip_id_here\",\n  \"recipientEmail\": \"john@company.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/payslips/:id/email",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "payslips", ":id", "email"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": ""
+                }
+              ]
+            },
+            "description": "Send payslip via email"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

@@ -35,12 +35,6 @@ import {
 import {
   ArrowBack,
   Download,
-  Email,
-  Add,
-  Badge,
-  HistoryEdu,
-  Print,
-  VerifiedUser,
   Security,
   ContactMail,
   Receipt
@@ -117,17 +111,20 @@ export default function PayslipManagement() {
     }
   };
 
-  const handleDownload = async (id) => {
+  const handleDownload = async (id, employeeId, month) => {
     try {
+      // Sync latest data if possible before download
+      if (employeeId && month) {
+        await api.post('/salary/generate', { employeeId, month }).catch(() => null);
+      }
+
       const response = await api.get(`/payslips/${id}/download`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Secure_Audit_${id}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      setMessage('✓ Secure document encryption complete');
+      const file = new Blob([response.data], { type: 'application/pdf' });
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL);
+      setMessage('✓ Payslip archetyped and decrypted for viewing');
       setShowSnack(true);
+      fetchPayslips(); // Refresh to show any net salary updates
     } catch (err) {
       setMessage('Credential download error');
       setShowSnack(true);
@@ -231,7 +228,7 @@ export default function PayslipManagement() {
                     <TableCell align="right">
                       <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                         <Tooltip title="Secure Download">
-                          <IconButton size="small" onClick={() => handleDownload(payslip._id)} sx={{ color: '#1A202C', p: 0.5 }}><Download sx={{ fontSize: 16 }} /></IconButton>
+                          <IconButton size="small" onClick={() => handleDownload(payslip._id, payslip.employee?._id, payslip.month)} sx={{ color: '#1A202C', p: 0.5 }}><Download sx={{ fontSize: 16 }} /></IconButton>
                         </Tooltip>
                         {isAdmin && (
                           <Tooltip title="Initialize External Notification">

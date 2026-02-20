@@ -66,11 +66,28 @@ exports.getAllPayslips = async (req, res) => {
 exports.downloadPayslip = async (req, res) => {
   try {
     const payslip = await Payslip.findById(req.params.id);
-    if (!payslip || !fs.existsSync(payslip.pdfPath)) {
-      return res.status(404).json({ message: 'Payslip not found' });
+    if (!payslip) return res.status(404).json({ message: 'Payslip record not found' });
+
+    let pdfPath = payslip.pdfPath;
+
+    // Resolve absolute path
+    let absolutePath = pdfPath;
+    if (!path.isAbsolute(pdfPath)) {
+      absolutePath = path.join(__dirname, '../', pdfPath);
     }
 
-    res.download(payslip.pdfPath);
+    // Recovery logic: if path stored is invalid, try resolving just by fileName
+    if (!fs.existsSync(absolutePath)) {
+      const fileName = path.basename(pdfPath);
+      const recoveredPath = path.join(__dirname, '../payslips', fileName);
+      if (fs.existsSync(recoveredPath)) {
+        absolutePath = recoveredPath;
+      } else {
+        return res.status(404).json({ message: 'Physical PDF archetyped file not found' });
+      }
+    }
+
+    res.download(absolutePath);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -107,7 +124,7 @@ exports.sendPayslipEmail = async (req, res) => {
 exports.getPayslipsByEmployee = async (req, res) => {
   try {
     const payslips = await Payslip.find({ employee: req.params.employeeId })
-      .sort({ month: -1 });
+      .sort({ month: -1, createdAt: -1 });
     res.json(payslips);
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -32,16 +32,10 @@ import {
 } from '@mui/material';
 import {
   ArrowBack,
-  CheckCircle,
-  Cancel,
-  HistoryEdu,
   Verified,
-  AdminPanelSettings,
-  Person,
   Payments,
   CalendarMonth,
-  InfoOutlined,
-  Rule
+  InfoOutlined
 } from '@mui/icons-material';
 import api from '../api';
 
@@ -58,7 +52,9 @@ export default function AdminRequests() {
   const [tabValue, setTabValue] = useState(0);
   const [leaves, setLeaves] = useState([]);
   const [loans, setLoans] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [dateFilter, setDateFilter] = useState('');
+  const [monthFilter, setMonthFilter] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [fetchLoading, setFetchLoading] = useState(true);
   const [openRejectDialog, setOpenRejectDialog] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -70,6 +66,8 @@ export default function AdminRequests() {
 
   useEffect(() => {
     fetchRequests();
+    const interval = setInterval(fetchRequests, 20000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchRequests = async () => {
@@ -79,13 +77,38 @@ export default function AdminRequests() {
         api.get('/leaves/all').catch(() => ({ data: [] })),
         api.get('/loans/all').catch(() => ({ data: [] }))
       ]);
-      setLeaves((leaveRes.data || []).filter(item => item.status === 'pending' && item.employee));
-      setLoans((loanRes.data || []).filter(item => item.status === 'pending' && item.employee));
+      setLeaves((leaveRes.data || []).filter(item => item.employee));
+      setLoans((loanRes.data || []).filter(item => item.employee));
       setFetchLoading(false);
     } catch (err) {
       console.error('Governance fetch error:', err);
       setFetchLoading(false);
     }
+  };
+
+  const getFilteredData = (items) => {
+    return items.filter(req => {
+      const matchesSearch = !searchQuery ||
+        req.employee?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        req.employee?.department?.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const reqDate = new Date(req.appliedOn);
+      const matchesDate = !dateFilter ||
+        reqDate.toISOString().split('T')[0] === dateFilter;
+
+      const matchesMonth = !monthFilter ||
+        (reqDate.getFullYear() === parseInt(monthFilter.split('-')[0]) &&
+          (reqDate.getMonth() + 1) === parseInt(monthFilter.split('-')[1]));
+
+      return matchesSearch && matchesDate && matchesMonth;
+    });
+  };
+
+  const stats = {
+    totalLeaves: leaves.length,
+    totalLoans: loans.length,
+    pendingCount: [...leaves, ...loans].filter(r => r.status === 'pending').length,
+    approvedCount: [...leaves, ...loans].filter(r => r.status === 'approved').length
   };
 
   const handleApprove = async (type, id) => {
@@ -138,10 +161,25 @@ export default function AdminRequests() {
     const configs = {
       pending: { label: 'Audit Pending', color: '#ED8936', bg: '#FFFAF0' },
       approved: { label: 'Verified', color: '#48BB78', bg: '#F0FFF4' },
-      rejected: { label: 'Declined', color: '#E53E3E', bg: '#FFF5F5' }
+      rejected: { label: 'Declined', color: '#E53E3E', bg: '#FFF5F5' },
+      closed: { label: 'Closed', color: '#718096', bg: '#F7FAFC' }
     };
     const cur = configs[status] || configs.pending;
-    return <Chip label={cur.label} size="small" sx={{ borderRadius: '6px', fontWeight: 800, color: cur.color, bgcolor: cur.bg, border: `1px solid ${cur.color}30`, fontSize: '0.65rem', textTransform: 'uppercase' }} />;
+    return (
+      <Chip
+        label={cur.label}
+        size="small"
+        sx={{
+          borderRadius: '6px',
+          fontWeight: 800,
+          color: cur.color,
+          bgcolor: cur.bg,
+          border: `1px solid ${cur.color}30`,
+          fontSize: '0.65rem',
+          textTransform: 'uppercase'
+        }}
+      />
+    );
   };
 
   const RequestTable = ({ items, type }) => (
@@ -234,8 +272,90 @@ export default function AdminRequests() {
         </Container>
       </Box>
 
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={3}>
+            <Paper sx={{ p: 2.5, height: '100%', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 2, transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 24px -10px rgba(0,0,0,0.1)' } }}>
+              <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#8B5CF610', color: '#8B5CF6' }}><CalendarMonth /></Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: '#718096', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Leaves</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#1A202C' }}>{stats.totalLeaves}</Typography>
+              </Box>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Paper sx={{ p: 2.5, height: '100%', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 2, transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 24px -10px rgba(0,0,0,0.1)' } }}>
+              <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#F9731610', color: '#F97316' }}><Payments /></Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: '#718096', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Total Loans</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#1A202C' }}>{stats.totalLoans}</Typography>
+              </Box>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Paper sx={{ p: 2.5, height: '100%', borderRadius: '16px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: 2, transition: 'all 0.2s', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 24px -10px rgba(0,0,0,0.1)' } }}>
+              <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: '#ED893610', color: '#ED8936' }}><InfoOutlined /></Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: '#ED8936', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Pending Audit</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: '#ED8936' }}>{stats.pendingCount}</Typography>
+              </Box>
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Paper sx={{ p: 2.5, height: '100%', borderRadius: '16px', bgcolor: '#1A2024', color: 'white', display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: 'rgba(255,255,255,0.1)' }}><Verified /></Box>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Verified Work</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800 }}>{stats.approvedCount}</Typography>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Container>
+
       <Container maxWidth="xl" sx={{ flexGrow: 1, py: 2, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Paper sx={{ flexGrow: 1, borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <Paper sx={{ flexGrow: 1, borderRadius: '12px', border: '1px solid #E2E8F0', boxShadow: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+          {/* SEARCH & FILTERS */}
+          <Box sx={{ p: 2.5, bgcolor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
+              <TextField
+                size="small"
+                placeholder="Search personnel or department..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                sx={{ flexGrow: 1, bgcolor: 'white', '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+              />
+              <Stack direction="row" spacing={2}>
+                <TextField
+                  type="date"
+                  size="small"
+                  label="Filter by Date"
+                  InputLabelProps={{ shrink: true }}
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  sx={{ width: 170, bgcolor: 'white', '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                />
+                <TextField
+                  type="month"
+                  size="small"
+                  label="Filter Month"
+                  InputLabelProps={{ shrink: true }}
+                  value={monthFilter}
+                  onChange={(e) => setMonthFilter(e.target.value)}
+                  sx={{ width: 150, bgcolor: 'white', '& .MuiOutlinedInput-root': { borderRadius: '10px' } }}
+                />
+                <Button
+                  variant="outlined"
+                  onClick={() => { setDateFilter(''); setMonthFilter(''); setSearchQuery(''); }}
+                  sx={{ px: 3, textTransform: 'none', fontWeight: 700, borderRadius: '10px', color: '#718096', borderColor: '#E2E8F0' }}
+                >
+                  Clear
+                </Button>
+              </Stack>
+            </Stack>
+          </Box>
+
           <Tabs
             value={tabValue}
             onChange={(e, v) => setTabValue(v)}
@@ -258,10 +378,10 @@ export default function AdminRequests() {
             ) : (
               <>
                 <TabPanel value={tabValue} index={0}>
-                  <RequestTable items={leaves} type="leave" />
+                  <RequestTable items={getFilteredData(leaves)} type="leave" />
                 </TabPanel>
                 <TabPanel value={tabValue} index={1}>
-                  <RequestTable items={loans} type="loan" />
+                  <RequestTable items={getFilteredData(loans)} type="loan" />
                 </TabPanel>
               </>
             )}

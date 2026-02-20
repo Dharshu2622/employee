@@ -78,9 +78,9 @@ export default function EmployeeManagement() {
       setFetchLoading(true);
       const res = await api.get('/admin/employees');
       const allPersonnel = res.data || [];
-      setEmployees(allPersonnel);
+      setEmployees(allPersonnel.filter(emp => emp.role === 'employee'));
 
-      // Filter for superiors for the dropdown
+      // Filter for superiors for the dropdown - keep all superiors as potential managers
       const superiorList = allPersonnel.filter(emp => emp.role === 'superior');
       setSuperiors(superiorList);
 
@@ -189,7 +189,7 @@ export default function EmployeeManagement() {
         setMessage('Personnel record successfully synchronized');
       } else {
         await api.post('/admin/employees', payload);
-        setMessage('New personnel onboarded and secured');
+        setMessage('Employee created successfully. Login access granted.');
       }
 
       await fetchEmployees();

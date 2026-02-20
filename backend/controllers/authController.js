@@ -44,4 +44,21 @@ exports.getCurrentUser = async (req, res) => {
   }
 };
 
+// Get simulation users (public)
+exports.getSimulationUsers = async (req, res) => {
+  try {
+    const employees = await Employee.find({ role: 'employee' }).select('name email department position');
+    const superiors = await Employee.find({ role: 'superior' }).select('name email department position');
+    const admins = await Employee.find({ role: 'admin' }).select('name email department position');
+
+    res.json({
+      employees,
+      superiors,
+      admins
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 module.exports = exports;

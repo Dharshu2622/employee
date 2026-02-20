@@ -46,9 +46,11 @@ const generatePayslipPDF = (employee, salary, month, outputPath) => {
       doc.text(`PF: ₹${salary.deductions.pf.toLocaleString()}`);
       doc.text(`Tax: ₹${salary.deductions.tax.toLocaleString()}`);
       doc.text(`Insurance: ₹${salary.deductions.insurance.toLocaleString()}`);
+
       if (salary.deductions.loanEMI > 0) {
         doc.text(`Loan EMI: ₹${salary.deductions.loanEMI.toLocaleString()}`);
       }
+
       doc.font('Helvetica-Bold').text(`Total Deductions: ₹${salary.totalDeductions.toLocaleString()}`);
       doc.moveDown();
 

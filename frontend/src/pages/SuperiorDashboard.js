@@ -1,5 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import {
+    PendingActions,
+    VerifiedUser,
+    HighlightOff,
+    EventAvailableOutlined,
+    PersonOutline,
+    Groups,
+    CheckCircle,
+    History,
+    Assignment,
+    AccountBalanceWallet,
+    Stars,
+    Logout
+} from '@mui/icons-material';
+import {
     Box,
     Container,
     Grid,
@@ -13,22 +27,13 @@ import {
     useTheme,
     Avatar,
     Divider,
-    CircularProgress
+    CircularProgress,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Chip
 } from '@mui/material';
-import {
-    Groups,
-    CheckCircle,
-    Cancel,
-    History,
-    TrendingUp,
-    Assignment,
-    AccountBalanceWallet,
-    Settings,
-    Notifications,
-    Stars,
-    PendingActions,
-    VerifiedUser
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 
@@ -92,23 +97,36 @@ const QuickAction = ({ title, icon, onClick, color }) => (
 
 export default function SuperiorDashboard() {
     const [summary, setSummary] = useState(null);
+    const [user, setUser] = useState(null);
+    const [openProfile, setOpenProfile] = useState(false);
     const [loading, setLoading] = useState(true);
     const theme = useTheme();
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetchSummary();
+        fetchData();
+        const interval = setInterval(fetchData, 15000);
+        return () => clearInterval(interval);
     }, []);
 
-    const fetchSummary = async () => {
+    const fetchData = async () => {
         try {
-            const resp = await api.get('/attendance/summary/today');
-            setSummary(resp.data);
+            const [summaryRes, userRes] = await Promise.all([
+                api.get('/attendance/summary/today'),
+                api.get('/auth/me')
+            ]);
+            setSummary(summaryRes.data);
+            setUser(userRes.data);
         } catch (err) {
             console.error(err);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        navigate('/');
     };
 
     if (loading) {
@@ -135,9 +153,37 @@ export default function SuperiorDashboard() {
                             <Typography variant="h3" sx={{ fontWeight: 900, mb: 1 }}>Superior Hub</Typography>
                             <Typography variant="body1" sx={{ opacity: 0.7 }}>Welcome back to your management dashboard.</Typography>
                         </Box>
-                        <Avatar sx={{ width: 60, height: 60, border: '4px solid rgba(255,255,255,0.1)' }}>
-                            <Stars />
-                        </Avatar>
+                        <Stack direction="row" spacing={2} alignItems="center">
+                            <Button
+                                variant="outlined"
+                                startIcon={<PersonOutline />}
+                                onClick={() => setOpenProfile(true)}
+                                sx={{
+                                    color: 'white',
+                                    borderColor: 'rgba(255,255,255,0.3)',
+                                    textTransform: 'none',
+                                    '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
+                                }}
+                            >
+                                View Profile
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                startIcon={<Logout />}
+                                onClick={handleLogout}
+                                sx={{
+                                    color: '#f87171',
+                                    borderColor: 'rgba(248, 113, 113, 0.3)',
+                                    textTransform: 'none',
+                                    '&:hover': { borderColor: '#f87171', bgcolor: 'rgba(248, 113, 113, 0.1)' }
+                                }}
+                            >
+                                Logout
+                            </Button>
+                            <Avatar src={user?.photo} sx={{ width: 60, height: 60, border: '4px solid rgba(255,255,255,0.1)', bgcolor: '#7C3AED', fontWeight: 700 }}>
+                                {user?.name ? user.name.charAt(0).toUpperCase() : <Stars />}
+                            </Avatar>
+                        </Stack>
                     </Stack>
                 </Container>
             </Box>
@@ -145,7 +191,7 @@ export default function SuperiorDashboard() {
             <Container maxWidth="xl" sx={{ mt: -8 }}>
                 <Grid container spacing={3}>
                     {/* Real-time Summary Stat Cards */}
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={4}>
                         <StatCard
                             title="Total Employees"
                             value={summary?.totalEmployees || 0}
@@ -153,7 +199,7 @@ export default function SuperiorDashboard() {
                             color="#3b82f6"
                         />
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={4}>
                         <StatCard
                             title="Present Today"
                             value={summary?.present || 0}
@@ -161,20 +207,28 @@ export default function SuperiorDashboard() {
                             color="#10b981"
                         />
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={4}>
                         <StatCard
-                            title="Half Day / Leave"
-                            value={(summary?.halfday || 0) + (summary?.leave || 0)}
-                            icon={<History />}
-                            color="#f59e0b"
+                            title="Absent Today"
+                            value={summary?.absent || 0}
+                            icon={<HighlightOff />}
+                            color="#EF4444"
                         />
                     </Grid>
-                    <Grid item xs={12} md={3}>
+                    <Grid item xs={12} md={6}>
                         <StatCard
-                            title="Attendance Rate"
-                            value={`${(((summary?.present || 0) / (summary?.totalEmployees || 1)) * 100).toFixed(1)}%`}
-                            icon={<TrendingUp />}
-                            gradient="linear-gradient(135deg, #818cf8 0%, #4f46e5 100%)"
+                            title="Half Day Leave"
+                            value={summary?.halfday || 0}
+                            icon={<History />}
+                            color="#F59E0B"
+                        />
+                    </Grid>
+                    <Grid item xs={12} md={6}>
+                        <StatCard
+                            title="Official Leave"
+                            value={(summary?.official_leave || 0) + (summary?.leave || 0)}
+                            icon={<EventAvailableOutlined />}
+                            color="#6366F1"
                         />
                     </Grid>
 
@@ -219,66 +273,62 @@ export default function SuperiorDashboard() {
                         </Paper>
                     </Grid>
 
-                    {/* Pending Alerts / Notifications */}
-                    <Grid item xs={12} md={7}>
-                        <Card sx={{ borderRadius: '24px', height: '100%' }}>
-                            <CardContent sx={{ p: 4 }}>
-                                <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
-                                    <Typography variant="h6" sx={{ fontWeight: 800 }}>System Integrity Alerts</Typography>
-                                    <IconButton><Notifications color="primary" /></IconButton>
-                                </Stack>
-                                <Divider sx={{ mb: 3 }} />
-                                <Stack spacing={2}>
-                                    <Paper variant="outlined" sx={{ p: 2, display: 'flex', gap: 2, borderRadius: '12px', borderStyle: 'dashed' }}>
-                                        <Box sx={{ p: 1, height: 'fit-content', borderRadius: '8px', background: '#fee2e2', color: '#ef4444' }}><Cancel /></Box>
-                                        <Box>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Salary Audit Pending</Typography>
-                                            <Typography variant="caption" sx={{ color: '#64748b' }}>Month: January 2026. 12 employees require processing.</Typography>
-                                        </Box>
-                                    </Paper>
-                                    <Paper variant="outlined" sx={{ p: 2, display: 'flex', gap: 2, borderRadius: '12px', borderStyle: 'dashed' }}>
-                                        <Box sx={{ p: 1, height: 'fit-content', borderRadius: '8px', background: '#dcfce7', color: '#22c55e' }}><CheckCircle /></Box>
-                                        <Box>
-                                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Attendance Finalized</Typography>
-                                            <Typography variant="caption" sx={{ color: '#64748b' }}>Daily records for Yesterday have been verified and sealed.</Typography>
-                                        </Box>
-                                    </Paper>
-                                </Stack>
-                            </CardContent>
-                        </Card>
-                    </Grid>
-
-                    <Grid item xs={12} md={5}>
-                        <Card sx={{ borderRadius: '24px', height: '100%', background: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)', color: 'white' }}>
-                            <CardContent sx={{ p: 4 }}>
-                                <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Resource Statistics</Typography>
-                                <Typography variant="body2" sx={{ mb: 4, opacity: 0.8 }}>Departmental efficiency and financial health metrics.</Typography>
-
-                                <Stack spacing={3}>
-                                    <Box>
-                                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                                            <Typography variant="caption" sx={{ fontWeight: 700 }}>Budget Utilization</Typography>
-                                            <Typography variant="caption">74%</Typography>
-                                        </Stack>
-                                        <Box sx={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 3 }}>
-                                            <Box sx={{ width: '74%', height: '100%', background: 'white', borderRadius: 3 }} />
-                                        </Box>
-                                    </Box>
-                                    <Box>
-                                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                                            <Typography variant="caption" sx={{ fontWeight: 700 }}>Team Productivity</Typography>
-                                            <Typography variant="caption">92%</Typography>
-                                        </Stack>
-                                        <Box sx={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.2)', borderRadius: 3 }}>
-                                            <Box sx={{ width: '92%', height: '100%', background: 'white', borderRadius: 3 }} />
-                                        </Box>
-                                    </Box>
-                                </Stack>
-                            </CardContent>
-                        </Card>
-                    </Grid>
                 </Grid>
             </Container>
+
+            {/* PROFILE DIALOG */}
+            <Dialog
+                open={openProfile}
+                onClose={() => setOpenProfile(false)}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}
+            >
+                <DialogTitle sx={{ pt: 3, px: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800 }}>Superior Profile</Typography>
+                    <IconButton onClick={() => setOpenProfile(false)} size="small" sx={{ bgcolor: '#F7FAFC' }}>
+                        <HighlightOff sx={{ fontSize: 20 }} />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ px: 3, pb: 4 }}>
+                    {user && (
+                        <Stack spacing={4} sx={{ mt: 1 }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                                <Avatar src={user.photo} sx={{ width: 100, height: 100, bgcolor: '#7C3AED', fontSize: '2.5rem', fontWeight: 700, mb: 2, boxShadow: '0 10px 20px rgba(0,0,0,0.1)' }}>
+                                    {user.name.charAt(0).toUpperCase()}
+                                </Avatar>
+                                <Typography variant="h5" sx={{ fontWeight: 800, color: '#1A202C' }}>{user.name}</Typography>
+                                <Typography variant="body1" sx={{ color: '#718096', fontWeight: 600 }}>{user.position || 'Superior'}</Typography>
+                                <Chip label={user.status || 'Active'} size="small" sx={{ mt: 1, bgcolor: '#C6F6D5', color: '#22543D', fontWeight: 700, borderRadius: '8px' }} />
+                            </Box>
+
+                            <Paper variant="outlined" sx={{ p: 0, borderRadius: '16px', overflow: 'hidden' }}>
+                                {[
+                                    { label: 'Department', value: user.department },
+                                    { label: 'Email Address', value: user.email },
+                                    { label: 'Phone Number', value: user.phone || 'Not provided' },
+                                    { label: 'Gender', value: user.gender, capitalize: true },
+                                    { label: 'Date of Joining', value: user.dateOfJoining ? new Date(user.dateOfJoining).toLocaleDateString() : 'N/A' },
+                                    { label: 'Base Salary', value: `₹${user.baseSalary?.toLocaleString()}` }
+                                ].map((item, i) => (
+                                    <Box key={item.label}>
+                                        <Stack direction="row" justifyContent="space-between" sx={{ p: 2, bgcolor: i % 2 === 0 ? 'white' : '#F8FAFC' }}>
+                                            <Typography variant="body2" sx={{ color: '#718096', fontWeight: 600 }}>{item.label}</Typography>
+                                            <Typography variant="body2" sx={{ color: '#1A202C', fontWeight: 700, textTransform: item.capitalize ? 'capitalize' : 'none' }}>{item.value}</Typography>
+                                        </Stack>
+                                        {i < 5 && <Divider />}
+                                    </Box>
+                                ))}
+                            </Paper>
+                        </Stack>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 3, pt: 0, justifyContent: 'center' }}>
+                    <Button onClick={() => setOpenProfile(false)} sx={{ color: '#718096', fontWeight: 700, textTransform: 'none' }}>
+                        Close Profile
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 }
