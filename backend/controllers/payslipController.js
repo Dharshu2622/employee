@@ -1,6 +1,7 @@
 const Payslip = require('../models/Payslip');
 const Salary = require('../models/Salary');
 const Employee = require('../models/Employee');
+const mongoose = require('mongoose');
 const { generatePayslipPDF } = require('../utils/pdfGenerator');
 const { sendPayslipEmail } = require('../utils/mailer');
 const path = require('path');
@@ -39,7 +40,8 @@ exports.generatePayslip = async (req, res) => {
         employee: employeeId,
         salary: salary._id,
         month,
-        pdfPath
+        pdfPath,
+        status: 'paid'
       });
       await payslip.save();
     }
@@ -123,9 +125,46 @@ exports.sendPayslipEmail = async (req, res) => {
 // Get payslips by employee
 exports.getPayslipsByEmployee = async (req, res) => {
   try {
-    const payslips = await Payslip.find({ employee: req.params.employeeId })
-      .sort({ month: -1, createdAt: -1 });
-    res.json(payslips);
+    const payslips = await Payslip.aggregate([
+      { $match: { employee: new mongoose.Types.ObjectId(req.params.employeeId) } },
+      { $sort: { month: -1, createdAt: -1 } },
+      {
+        $group: {
+          _id: "$month",
+          latestPayslip: { $first: "$$ROOT" }
+        }
+      },
+      { $replaceRoot: { newRoot: "$latestPayslip" } },
+      { $sort: { month: -1 } }
+    ]);
+
+    const populatedPayslips = await Payslip.populate(payslips, { path: 'salary' });
+    res.json(populatedPayslips);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Get current user's payslips
+exports.getMyPayslips = async (req, res) => {
+  try {
+    const payslips = await Payslip.aggregate([
+      { $match: { employee: new mongoose.Types.ObjectId(req.user._id) } },
+      { $sort: { month: -1, createdAt: -1 } },
+      {
+        $group: {
+          _id: "$month",
+          latestPayslip: { $first: "$$ROOT" }
+        }
+      },
+      { $replaceRoot: { newRoot: "$latestPayslip" } },
+      { $sort: { month: -1 } }
+    ]);
+
+    // Populate salary manually after aggregation since $populate doesn't work in aggregate
+    const populatedPayslips = await Payslip.populate(payslips, { path: 'salary' });
+
+    res.json(populatedPayslips);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

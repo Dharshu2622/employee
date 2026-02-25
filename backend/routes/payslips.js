@@ -8,6 +8,7 @@ const router = express.Router();
 // Generate payslip: admin and superior (payroll)
 router.post('/generate', auth, authorize.permitRoles('admin', 'superior'), payslipController.generatePayslip);
 router.get('/all', auth, authorize.permitRoles('admin', 'superior'), payslipController.getAllPayslips);
+router.get('/my-payslips', auth, payslipController.getMyPayslips);
 router.get('/:id/download', auth, authorize.allowPayslipOwnerOrRoles('id', 'admin', 'superior'), payslipController.downloadPayslip);
 router.post('/:id/send-email', auth, authorize.permitRoles('admin', 'superior'), payslipController.sendPayslipEmail);
 router.get('/employee/:employeeId', auth, authorize.allowSelfOrRoles('employeeId', 'admin', 'superior'), payslipController.getPayslipsByEmployee);

@@ -11,7 +11,9 @@ import {
     Assignment,
     AccountBalanceWallet,
     Stars,
-    Logout
+    Logout,
+    Download,
+    Description
 } from '@mui/icons-material';
 import {
     Box,
@@ -24,7 +26,6 @@ import {
     IconButton,
     Stack,
     Button,
-    useTheme,
     Avatar,
     Divider,
     CircularProgress,
@@ -32,7 +33,8 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Chip
+    Chip,
+    ButtonBase
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
@@ -100,8 +102,30 @@ export default function SuperiorDashboard() {
     const [user, setUser] = useState(null);
     const [openProfile, setOpenProfile] = useState(false);
     const [loading, setLoading] = useState(true);
-    const theme = useTheme();
+    const [payslips, setPayslips] = useState([]);
+    const [downloadingPayslip, setDownloadingPayslip] = useState(false);
     const navigate = useNavigate();
+
+    const fetchData = async () => {
+        try {
+            const [summaryRes, userRes, payslipsRes] = await Promise.all([
+                api.get('/attendance/summary/today'),
+                api.get('/auth/me'),
+                api.get('/payslips/my-payslips')
+            ]);
+            setSummary(summaryRes.data);
+            setUser(userRes.data);
+            setPayslips(payslipsRes.data || []);
+            console.log('Payslips loaded:', payslipsRes.data);
+        } catch (err) {
+            console.error('Error fetching dashboard data:', err);
+            if (err.response) {
+                console.error('API Error Response:', err.response.status, err.response.data);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchData();
@@ -109,24 +133,30 @@ export default function SuperiorDashboard() {
         return () => clearInterval(interval);
     }, []);
 
-    const fetchData = async () => {
-        try {
-            const [summaryRes, userRes] = await Promise.all([
-                api.get('/attendance/summary/today'),
-                api.get('/auth/me')
-            ]);
-            setSummary(summaryRes.data);
-            setUser(userRes.data);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const handleLogout = () => {
         localStorage.removeItem('token');
         navigate('/');
+    };
+
+    const downloadPayslip = async (payslip) => {
+        try {
+            setDownloadingPayslip(true);
+            const response = await api.get(`/payslips/${payslip._id}/download`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `Payslip-${payslip.month}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (err) {
+            console.error('Error downloading payslip:', err);
+            alert('Failed to download payslip');
+        } finally {
+            setDownloadingPayslip(false);
+        }
     };
 
     if (loading) {
@@ -167,6 +197,21 @@ export default function SuperiorDashboard() {
                             >
                                 View Profile
                             </Button>
+
+                            <Button
+                                variant="outlined"
+                                startIcon={<Description />}
+                                onClick={() => navigate('/superior/mypayslips')}
+                                sx={{
+                                    color: 'white',
+                                    borderColor: 'rgba(255,255,255,0.18)',
+                                    textTransform: 'none',
+                                    '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.06)' }
+                                }}
+                            >
+                                My Payslips
+                            </Button>
+
                             <Button
                                 variant="outlined"
                                 startIcon={<Logout />}
@@ -180,6 +225,7 @@ export default function SuperiorDashboard() {
                             >
                                 Logout
                             </Button>
+
                             <Avatar src={user?.photo} sx={{ width: 60, height: 60, border: '4px solid rgba(255,255,255,0.1)', bgcolor: '#7C3AED', fontWeight: 700 }}>
                                 {user?.name ? user.name.charAt(0).toUpperCase() : <Stars />}
                             </Avatar>
@@ -272,6 +318,8 @@ export default function SuperiorDashboard() {
                             </Grid>
                         </Paper>
                     </Grid>
+
+                    
 
                 </Grid>
             </Container>

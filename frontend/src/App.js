@@ -17,6 +17,7 @@ import PayslipManagement from './pages/PayslipManagement';
 import EmployeeManagement from './pages/EmployeeManagement';
 import AdminSettings from './pages/AdminSettings';
 import SuperiorDashboard from './pages/SuperiorDashboard';
+import SuperiorPayslips from './pages/SuperiorPayslips';
 import SuperiorAttendance from './pages/SuperiorAttendance';
 import SuperiorLeaves from './pages/SuperiorLeaves';
 import SuperiorLoans from './pages/SuperiorLoans';
@@ -65,6 +66,7 @@ function AppRoutes() {
 
       {/* Superior Routes */}
       <Route path="/superior/dashboard" element={<ProtectedRoute requiredRole="superior"><SuperiorDashboard /></ProtectedRoute>} />
+      <Route path="/superior/mypayslips" element={<ProtectedRoute requiredRole="superior"><SuperiorPayslips /></ProtectedRoute>} />
       <Route path="/superior/attendance" element={<ProtectedRoute requiredRole="superior"><SuperiorAttendance /></ProtectedRoute>} />
       <Route path="/superior/leaves" element={<ProtectedRoute requiredRole="superior"><SuperiorLeaves /></ProtectedRoute>} />
       <Route path="/superior/loans" element={<ProtectedRoute requiredRole="superior"><SuperiorLoans /></ProtectedRoute>} />

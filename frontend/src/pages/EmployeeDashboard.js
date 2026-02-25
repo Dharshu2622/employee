@@ -20,7 +20,8 @@ import {
   DialogActions,
   Avatar,
   Divider,
-  Chip
+  Chip,
+  CircularProgress
 } from '@mui/material';
 import { PersonOutline, CalendarToday, CreditCard, ArticleOutlined, MoreVert, LogoutOutlined, CheckCircle, Cancel, History, Schedule } from '@mui/icons-material';
 import api from '../api';
@@ -109,6 +110,8 @@ export default function EmployeeDashboard() {
       </Stack>
     </Paper>
   );
+
+
 
   return (
     <Box sx={{ bgcolor: '#F7FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
@@ -256,6 +259,8 @@ export default function EmployeeDashboard() {
             <Grid item xs={12} sm={6} md={3}>
               <StatCard title="Next EMI Due" value={`₹${loans.toLocaleString()}`} icon={CreditCard} color="#9F7AEA" onClick={() => navigate('/employee/loans')} />
             </Grid>
+
+
 
             {/* QUICK ACTIONS */}
             <Grid item xs={12}>

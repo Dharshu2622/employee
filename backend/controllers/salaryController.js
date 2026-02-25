@@ -208,7 +208,7 @@ const internalProcessSalary = async (employeeId, month) => {
     salary.attendanceDays = details.attendanceDays;
     salary.leavesTaken = details.leavesTaken;
     salary.updatedAt = new Date();
-    status = 'updated'; // Set status to updated if existing
+    status = 'updated';
   } else {
     salary = new Salary({
       employee: employeeId,
@@ -258,6 +258,8 @@ const internalProcessSalary = async (employeeId, month) => {
   if (payslip) {
     payslip.salary = salary._id;
     payslip.pdfPath = relativePdfPath;
+    payslip.status = 'paid';
+    payslip.year = new Date().getFullYear();
     payslip.updatedAt = new Date();
     await payslip.save();
   } else {
@@ -265,7 +267,9 @@ const internalProcessSalary = async (employeeId, month) => {
       employee: employeeId,
       salary: salary._id,
       month,
-      pdfPath: relativePdfPath
+      pdfPath: relativePdfPath,
+      status: 'paid',
+      year: new Date().getFullYear()
     });
     await payslip.save();
   }
@@ -296,16 +300,13 @@ exports.generateSalary = async (req, res) => {
     const targetEmployee = await Employee.findById(employeeId);
     if (!targetEmployee) return res.status(404).json({ message: 'Target employee not found' });
 
+    // Superiors can only generate salary for regular employees (not other superiors)
     if (req.user.role === 'superior' && targetEmployee.role !== 'employee') {
       return res.status(403).json({ message: 'Superiors can only generate salary for regular employees' });
     }
 
-    // Add restriction for Admin if they should ONLY generate for superiors?
-    // User said "only admin can generate the slary to superior employee only"
-    // This implies that Admin handles Superiors, and Superiors handle Employees.
-    if (req.user.role === 'admin' && targetEmployee.role !== 'superior') {
-      return res.status(403).json({ message: 'Admin role restricted to Superior personnel disbursement on this ledger' });
-    }
+    // Admin can generate salary for anyone
+    // No restriction for admin role
 
     const result = await internalProcessSalary(employeeId, month);
 

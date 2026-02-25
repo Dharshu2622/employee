@@ -7,12 +7,6 @@ import {
   Typography,
   Grid,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Chip,
   Snackbar,
   Alert as MuiAlert,
@@ -30,7 +24,9 @@ import {
   CircularProgress,
   Avatar,
   Tooltip,
-  Divider
+  Divider,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   ArrowBack,
@@ -147,103 +143,180 @@ export default function PayslipManagement() {
   };
 
   return (
-    <Box sx={{ bgcolor: '#F7FAFC', minHeight: '100vh', display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      {/* HEADER */}
-      <Box sx={{ p: 2, bgcolor: 'white', borderBottom: '1px solid #E2E8F0', minHeight: '64px' }}>
+    <Box sx={{ background: '#f8fafc', minHeight: '100vh', pb: 8, overflowY: 'auto' }}>
+      {/* HEADER SECTION */}
+      <Box sx={{
+        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
+        color: 'white',
+        pt: 6,
+        pb: 10,
+        borderRadius: '0 0 40px 40px'
+      }}>
         <Container maxWidth="xl">
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Stack direction="row" spacing={2} alignItems="center">
-              <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                <ArrowBack sx={{ fontSize: 20, color: '#1A202C' }} />
-              </IconButton>
-              <Box>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: '#1A202C', lineHeight: 1.2 }}>Audit Archives</Typography>
-                <Typography variant="caption" sx={{ color: '#718096', fontWeight: 600 }}>FINANCIAL LEDGER | ENCRYPTION SECURE</Typography>
-              </Box>
-            </Stack>
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 3 }}>
+            <Button
+              startIcon={<ArrowBack />}
+              onClick={() => navigate(-1)}
+              sx={{
+                color: 'white',
+                textTransform: 'none',
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' }
+              }}
+            >
+              Back to Dashboard
+            </Button>
+          </Stack>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Box>
+              <Typography variant="h3" sx={{ fontWeight: 900, mb: 1 }}>My Payslips</Typography>
+              <Typography variant="body1" sx={{ opacity: 0.9 }}>
+                View and download your salary payslips
+              </Typography>
+            </Box>
             {isAdmin && (
               <Button
                 variant="contained"
-                size="small"
                 startIcon={<Receipt />}
                 onClick={() => setOpenDialog(true)}
-                sx={{ bgcolor: '#1A202C', fontWeight: 700, textTransform: 'none', px: 2, borderRadius: '8px', '&:hover': { bgcolor: '#2D3748' } }}
+                sx={{
+                  bgcolor: 'white',
+                  color: '#0f172a',
+                  fontWeight: 700,
+                  textTransform: 'none',
+                  px: 3,
+                  borderRadius: '12px',
+                  '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' }
+                }}
               >
-                Initialize Audit Record
+                Generate Record
               </Button>
             )}
-          </Stack>
+          </Box>
         </Container>
       </Box>
 
-      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 2, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <Paper sx={{ flexGrow: 1, borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: 'none', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          <TableContainer sx={{ flexGrow: 1, maxHeight: 'calc(100vh - 120px)', '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { bgcolor: '#E2E8F0', borderRadius: '10px' } }}>
-            <Table stickyHeader size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Identity</TableCell>
-                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Cycle</TableCell>
-                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Net Disbursement</TableCell>
-                  <TableCell sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Security Status</TableCell>
-                  <TableCell align="right" sx={{ bgcolor: '#F8FAFC', fontWeight: 800, color: '#4A5568', fontSize: '0.7rem', textTransform: 'uppercase' }}>Operational Control</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {fetchLoading ? (
-                  <TableRow><TableCell colSpan={5} align="center" sx={{ py: 5 }}><CircularProgress size={24} sx={{ color: '#1A202C' }} /></TableCell></TableRow>
-                ) : payslips.map((payslip) => (
-                  <TableRow key={payslip._id} hover sx={{ '& .MuiTableCell-root': { py: 1.5 } }}>
-                    <TableCell>
-                      <Stack direction="row" spacing={1.5} alignItems="center">
-                        <Avatar sx={{ bgcolor: '#F1F5F9', color: '#1A202C', width: 28, height: 28, fontSize: '0.75rem', fontWeight: 800 }}>
-                          <Security sx={{ fontSize: 14 }} />
-                        </Avatar>
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 800, fontSize: '0.85rem', color: '#1A202C' }}>{payslip.employee?.name || 'Authorized Personnel'}</Typography>
-                          <Typography variant="caption" sx={{ color: '#718096', fontWeight: 500, fontSize: '0.7rem' }}>ID: {payslip._id.substring(18, 24).toUpperCase()}</Typography>
+      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 4, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+        {fetchLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+            <CircularProgress sx={{ color: '#1A202C' }} />
+          </Box>
+        ) : (
+          <Grid container spacing={3}>
+            {payslips.slice(0, 1).map((payslip) => (
+              <Grid item xs={12} sm={6} md={4} key={payslip._id}>
+                <Card sx={{
+                  borderRadius: '20px',
+                  border: '1px solid #EEF2F6',
+                  transition: 'all 0.3s ease',
+                  height: '100%',
+                  bgcolor: 'white',
+                  '&:hover': {
+                    boxShadow: '0 15px 35px rgba(0,0,0,0.1)',
+                    transform: 'translateY(-8px)',
+                    borderColor: '#6366f1'
+                  }
+                }}>
+                  <CardContent sx={{ p: 4 }}>
+                    <Stack spacing={3}>
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                          <Typography variant="h5" sx={{ fontWeight: 900, color: '#1A202C' }}>
+                            {new Date(`${payslip.month}-01`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                          </Typography>
+                          <Box sx={{
+                            px: 2,
+                            py: 1,
+                            borderRadius: '12px',
+                            bgcolor: payslip.emailSent ? '#D1FAE5' : '#EBF8FF'
+                          }}>
+                            <Typography variant="caption" sx={{
+                              fontWeight: 800,
+                              color: payslip.emailSent ? '#047857' : '#3182CE',
+                              textTransform: 'uppercase',
+                              fontSize: '0.65rem'
+                            }}>
+                              {payslip.emailSent ? 'Delivered' : 'Internal'}
+                            </Typography>
+                          </Box>
                         </Box>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: '#4A5568', fontSize: '0.85rem' }}>{payslip.month}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: '#2B6CB0', fontSize: '0.85rem' }}>₹{payslip.netSalary?.toLocaleString()}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={payslip.emailSent ? 'Delivered' : 'Internal Archive'}
-                        size="small"
-                        sx={{
-                          borderRadius: '4px',
-                          fontWeight: 800,
-                          color: payslip.emailSent ? '#48BB78' : '#3182CE',
-                          bgcolor: payslip.emailSent ? '#F0FFF4' : '#EBF8FF',
-                          fontSize: '0.6rem',
-                          textTransform: 'uppercase'
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                        <Tooltip title="Secure Download">
-                          <IconButton size="small" onClick={() => handleDownload(payslip._id, payslip.employee?._id, payslip.month)} sx={{ color: '#1A202C', p: 0.5 }}><Download sx={{ fontSize: 16 }} /></IconButton>
-                        </Tooltip>
+                        <Typography variant="body2" sx={{ color: '#718096', fontWeight: 600 }}>
+                          {payslip.employee?.name || 'Staff Member'}
+                        </Typography>
+                      </Box>
+
+                      <Divider />
+
+                      <Box>
+                        <Stack spacing={2}>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2" sx={{ color: '#718096', fontWeight: 600 }}>Gross Salary</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#1A202C' }}>
+                              ₹{payslip.salary?.gross?.toLocaleString() || '0'}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body2" sx={{ color: '#718096', fontWeight: 600 }}>Deductions</Typography>
+                            <Typography variant="body2" sx={{ fontWeight: 800, color: '#EF4444' }}>
+                              ₹{payslip.salary?.totalDeductions?.toLocaleString() || '0'}
+                            </Typography>
+                          </Box>
+                          <Divider sx={{ my: 1 }} />
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 800, color: '#1A202C' }}>Net Salary</Typography>
+                            <Typography variant="body1" sx={{ fontWeight: 900, color: '#10B981', fontSize: '1.1rem' }}>
+                              ₹{payslip.netSalary?.toLocaleString() || payslip.salary?.net?.toLocaleString() || '0'}
+                            </Typography>
+                          </Box>
+                        </Stack>
+                      </Box>
+
+                      <Divider />
+
+                      <Stack direction="row" spacing={2}>
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          startIcon={<Download />}
+                          onClick={() => handleDownload(payslip._id, payslip.employee?._id, payslip.month)}
+                          sx={{
+                            bgcolor: '#6366f1',
+                            color: 'white',
+                            fontWeight: 700,
+                            textTransform: 'none',
+                            borderRadius: '12px',
+                            py: 1.5,
+                            '&:hover': { bgcolor: '#4f46e5' }
+                          }}
+                        >
+                          Download PDF
+                        </Button>
                         {isAdmin && (
-                          <Tooltip title="Initialize External Notification">
-                            <IconButton size="small" onClick={() => handleOpenMailClient(payslip)} sx={{ color: '#3182CE', p: 0.5 }}><ContactMail sx={{ fontSize: 16 }} /></IconButton>
+                          <Tooltip title="Send Email">
+                            <Button
+                              variant="outlined"
+                              onClick={() => handleOpenMailClient(payslip)}
+                              sx={{
+                                borderRadius: '12px',
+                                minWidth: '48px',
+                                borderColor: '#E2E8F0',
+                                color: '#4A5568',
+                                '&:hover': { bgcolor: '#F8FAFC', borderColor: '#CBD5E0' }
+                              }}
+                            >
+                              <ContactMail sx={{ fontSize: 20 }} />
+                            </Button>
                           </Tooltip>
                         )}
                       </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
       </Container>
+
 
       {/* GENERATION DIALOG */}
       <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '12px' } }}>
@@ -278,6 +351,6 @@ export default function PayslipManagement() {
       <Snackbar open={showSnack} autoHideDuration={4000} onClose={() => setShowSnack(false)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <MuiAlert severity={message.includes('✓') ? 'success' : 'error'} variant="filled" sx={{ borderRadius: '4px' }}>{message}</MuiAlert>
       </Snackbar>
-    </Box>
+    </Box >
   );
 }
